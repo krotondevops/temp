@@ -598,6 +598,305 @@ if _page == "Market Share":
         )
         st.plotly_chart(fig_sivst, use_container_width=True)
 
+        # ══════════════════════════════════════════════════════════════
+        # Sell-Through Share (USD)
+        # ══════════════════════════════════════════════════════════════
+        st.markdown("""
+        <div style="margin-top:40px; margin-bottom:20px; position:relative; overflow:hidden; border-radius:12px; padding:24px 28px; background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 40%, #bfdbfe 100%); border-left:5px solid #2563eb;">
+            <div style="font-family:'Inter',sans-serif; font-size:24px; font-weight:800; color:#0f172a;">Sell-Through Share (USD)</div>
+            <div style="font-family:'Inter',sans-serif; font-size:13px; color:#475569; margin-top:4px;">Participación de sell-through por distribuidor y canal</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Tabla: Por Distribuidor ──
+        st.markdown("##### Por Distribuidor")
+        _st_dist = [
+            {"name": "KROTON S.A.C.",              "yoy": 5,    "s2025": 40, "s2024": 48, "s2023": 51},
+            {"name": "INTCOMEX PERU S.A.C.",       "yoy": 34,   "s2025": 27, "s2024": 25, "s2023": 19},
+            {"name": "DIGICORP",                   "yoy": 89,   "s2025": 12, "s2024": 8,  "s2023": 9},
+            {"name": "SEGO SEGURIDAD OPTIMA S.A.", "yoy": 38,   "s2025": 10, "s2024": 9,  "s2023": 10},
+            {"name": "IT DISTRIBUTION S.A.",       "yoy": 6,    "s2025": 5,  "s2024": 6,  "s2023": 8},
+            {"name": "FYCO",                       "yoy": None, "s2025": 3,  "s2024": 0,  "s2023": 0},
+            {"name": "HAYEX TECHNOLOGY S.A.C.",    "yoy": -28,  "s2025": 2,  "s2024": 4,  "s2023": 1},
+            {"name": "RING RING & ENERGY",         "yoy": None, "s2025": 1,  "s2024": 0,  "s2023": 0},
+            {"name": "GRUPO DELTRON S.A.",         "yoy": -100, "s2025": 0,  "s2024": 0,  "s2023": 4},
+        ]
+
+        def _growth_cell(v):
+            if v is None:
+                return '<span style="color:#cbd5e1;">—</span>'
+            color = "#10B981" if v > 0 else "#EF4444" if v < 0 else "#64748b"
+            return f'<span style="color:{color}; font-weight:600;">{v:+d}%</span>'
+
+        _st_rows = ""
+        for i, r in enumerate(_st_dist):
+            is_krt = "KROTON" in r["name"]
+            bg = "background:linear-gradient(90deg, rgba(14,165,233,0.08), rgba(14,165,233,0.02));" if is_krt else (
+                "background:#f8fafc;" if i % 2 == 0 else "background:#ffffff;")
+            fw = "font-weight:700;" if is_krt else ""
+            bl = "border-left:3px solid #0EA5E9;" if is_krt else "border-left:3px solid transparent;"
+            nc = "color:#0EA5E9;" if is_krt else "color:#0f172a;"
+            _st_rows += f"""<tr style="{bg}">
+                <td style="padding:10px 14px; {bl} {fw} {nc} font-size:13px;">{r['name']}</td>
+                <td style="padding:10px 12px; text-align:center; font-size:13px;">{_growth_cell(r['yoy'])}</td>
+                <td style="padding:10px 12px; text-align:center; font-size:13px; {fw}">{r['s2025']}%</td>
+                <td style="padding:10px 12px; text-align:center; font-size:13px;">{r['s2024']}%</td>
+                <td style="padding:10px 12px; text-align:center; font-size:13px;">{r['s2023']}%</td>
+            </tr>"""
+        _st_rows += """<tr style="background:#0f172a;">
+            <td style="padding:12px 14px; font-weight:700; color:#f1f5f9; font-size:13px; border-left:3px solid #38bdf8;">Total general</td>
+            <td style="padding:12px 12px; text-align:center; font-weight:700; color:#10B981; font-size:13px;">+25%</td>
+            <td style="padding:12px 12px; text-align:center; font-weight:700; color:#38bdf8; font-size:13px;">100%</td>
+            <td style="padding:12px 12px; text-align:center; font-weight:700; color:#38bdf8; font-size:13px;">100%</td>
+            <td style="padding:12px 12px; text-align:center; font-weight:700; color:#38bdf8; font-size:13px;">100%</td>
+        </tr>"""
+        _ths = 'padding:12px 12px; font-size:12px; text-align:center; font-weight:600;'
+        st.markdown(f"""
+        <div style="overflow-x:auto; border-radius:12px; box-shadow:0 2px 12px rgba(15,23,42,0.08); border:1px solid #e2e8f0; margin-bottom:32px;">
+            <table style="width:100%; border-collapse:collapse; font-family:'Inter',sans-serif;">
+                <thead><tr style="background:#0f172a;">
+                    <th style="{_ths} color:#f1f5f9; text-align:left; padding-left:14px;">Distribuidor</th>
+                    <th style="{_ths} color:#F59E0B;">YoY</th>
+                    <th style="{_ths} color:#38bdf8;">2025 Share</th>
+                    <th style="{_ths} color:#38bdf8;">2024 Share</th>
+                    <th style="{_ths} color:#38bdf8;">2023 Share</th>
+                </tr></thead>
+                <tbody>{_st_rows}</tbody>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Tabla: Por Canal ──
+        st.markdown("##### Por Canal")
+        _st_ch = [
+            {"ch": "ISP",         "digicorp": 15, "fyco": 23, "hayex": 21, "intcomex": 1,  "itd": 0,  "kroton": 31, "rr": 9, "sego": 1,  "growth": 5,  "s2025": 11, "s2024": 14},
+            {"ch": "Reseller",    "digicorp": 21, "fyco": 0,  "hayex": 0,  "intcomex": 21, "itd": 13, "kroton": 16, "rr": 0, "sego": 29, "growth": 25, "s2025": 16, "s2024": 16},
+            {"ch": "Reseller PP", "digicorp": 11, "fyco": 0,  "hayex": 0,  "intcomex": 26, "itd": 6,  "kroton": 49, "rr": 0, "sego": 8,  "growth": 26, "s2025": 47, "s2024": 47},
+            {"ch": "Retail",      "digicorp": 0,  "fyco": 0,  "hayex": 0,  "intcomex": 54, "itd": 0,  "kroton": 46, "rr": 0, "sego": 0,  "growth": 28, "s2025": 19, "s2024": 18},
+            {"ch": "SI",          "digicorp": 21, "fyco": 0,  "hayex": 0,  "intcomex": 19, "itd": 1,  "kroton": 47, "rr": 0, "sego": 12, "growth": 75, "s2025": 6,  "s2024": 5},
+        ]
+        _st_ch_total = {"digicorp": 12, "fyco": 3, "hayex": 2, "intcomex": 27, "itd": 5, "kroton": 41, "rr": 1, "sego": 9, "growth": 25, "s2025": 100, "s2024": 100}
+        _ch_keys = ["digicorp", "fyco", "hayex", "intcomex", "itd", "kroton", "rr", "sego", "growth", "s2025", "s2024"]
+        _ch_headers = ["DIGICORP", "FYCO", "HAYEX", "INTCOMEX", "ITD", "KROTON", "RING RING", "SEGO", "Growth", "2025 Share", "2024 Share"]
+
+        _ch_rows = ""
+        for i, r in enumerate(_st_ch):
+            bg = "background:#f8fafc;" if i % 2 == 0 else "background:#ffffff;"
+            cells = f'<td style="padding:10px 14px; font-weight:500; font-size:13px; color:#0f172a; border-left:3px solid transparent;">{r["ch"]}</td>'
+            for k in _ch_keys:
+                v = r[k]
+                if k == "kroton":
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px; color:#0EA5E9; font-weight:600;">{v}%</td>'
+                elif k == "growth":
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px;">{_growth_cell(v)}</td>'
+                else:
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px;">{v}%</td>'
+            _ch_rows += f'<tr style="{bg}">{cells}</tr>'
+
+        # Total row
+        _ch_total_cells = '<td style="padding:12px 14px; font-weight:700; color:#f1f5f9; font-size:13px; border-left:3px solid #38bdf8;">Total general</td>'
+        for k in _ch_keys:
+            v = _st_ch_total[k]
+            if k == "kroton":
+                _ch_total_cells += f'<td style="padding:12px 8px; text-align:center; font-weight:700; color:#0EA5E9; font-size:13px;">{v}%</td>'
+            elif k == "growth":
+                _ch_total_cells += f'<td style="padding:12px 8px; text-align:center; font-weight:700; color:#10B981; font-size:13px;">+{v}%</td>'
+            else:
+                _ch_total_cells += f'<td style="padding:12px 8px; text-align:center; font-weight:700; color:#38bdf8; font-size:13px;">{v}%</td>'
+        _ch_rows += f'<tr style="background:#0f172a;">{_ch_total_cells}</tr>'
+
+        _ch_th = ""
+        for h in _ch_headers:
+            c = "color:#0EA5E9;" if h == "KROTON" else "color:#F59E0B;" if h in ("Growth", "2025 Share", "2024 Share") else "color:#94a3b8;"
+            _ch_th += f'<th style="{_ths} {c}">{h}</th>'
+
+        st.markdown(f"""
+        <div style="overflow-x:auto; border-radius:12px; box-shadow:0 2px 12px rgba(15,23,42,0.08); border:1px solid #e2e8f0; margin-bottom:32px;">
+            <table style="width:100%; border-collapse:collapse; font-family:'Inter',sans-serif;">
+                <thead><tr style="background:#0f172a;">
+                    <th style="{_ths} color:#f1f5f9; text-align:left; padding-left:14px;">Channel</th>
+                    {_ch_th}
+                </tr></thead>
+                <tbody>{_ch_rows}</tbody>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ══════════════════════════════════════════════════════════════
+        # Sell-Through Share (QTY)
+        # ══════════════════════════════════════════════════════════════
+        st.markdown("""
+        <div style="margin-top:40px; margin-bottom:20px; position:relative; overflow:hidden; border-radius:12px; padding:24px 28px; background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 40%, #bbf7d0 100%); border-left:5px solid #16a34a;">
+            <div style="font-family:'Inter',sans-serif; font-size:24px; font-weight:800; color:#0f172a;">Sell-Through Share (QTY)</div>
+            <div style="font-family:'Inter',sans-serif; font-size:13px; color:#475569; margin-top:4px;">Participación por unidades vendidas — por marca y división</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Función reutilizable para tablas Brand/División
+        def _render_brand_table(title, data, subtotal, vigi, total):
+            st.markdown(f"##### {title}")
+            _hd = ["DIGICORP", "FYCO", "HAYEX", "INTCOMEX", "ITD", "KROTON", "Ring Ring", "SEGO", "Total", "Growth"]
+            _hk = ["digicorp", "fyco", "hayex", "intcomex", "itd", "kroton", "rr", "sego", "total", "growth"]
+
+            rows = ""
+            for i, r in enumerate(data):
+                bg = "background:#f8fafc;" if i % 2 == 0 else "background:#ffffff;"
+                cells = f'<td style="padding:10px 14px; font-size:13px; color:#0f172a; border-left:3px solid transparent;">{r["brand"]}</td>'
+                cells += f'<td style="padding:10px 8px; font-size:12px; color:#64748b;">{r["div"]}</td>'
+                for k in _hk:
+                    v = r[k]
+                    if k == "kroton":
+                        cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px; color:#0EA5E9; font-weight:600;">{v}%</td>'
+                    elif k == "growth":
+                        cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px;">{_growth_cell(v)}</td>'
+                    else:
+                        cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px;">{v}%</td>'
+                rows += f'<tr style="{bg}">{cells}</tr>'
+
+            # Subtotal TP-Link
+            cells = '<td style="padding:10px 14px; font-size:13px; font-weight:700; color:#0f172a;">Total TP-Link</td><td style="padding:10px 8px;"></td>'
+            for k in _hk:
+                v = subtotal[k]
+                if k == "kroton":
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px; color:#0EA5E9; font-weight:700;">{v}%</td>'
+                elif k == "growth":
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px;">{_growth_cell(v)}</td>'
+                else:
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px; font-weight:600;">{v}%</td>'
+            rows += f'<tr style="background:#e2e8f0;">{cells}</tr>'
+
+            # VIGI
+            cells = '<td style="padding:10px 14px; font-size:13px; color:#0f172a;">VIGI</td><td style="padding:10px 8px;"></td>'
+            for k in _hk:
+                v = vigi[k]
+                if k == "kroton":
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px; color:#0EA5E9; font-weight:600;">{v}%</td>'
+                elif k == "growth":
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px;">{_growth_cell(v)}</td>'
+                else:
+                    cells += f'<td style="padding:10px 8px; text-align:center; font-size:13px;">{v}%</td>'
+            rows += f'<tr style="background:#ffffff;">{cells}</tr>'
+
+            # Total
+            cells = '<td style="padding:12px 14px; font-weight:700; color:#f1f5f9; font-size:13px; border-left:3px solid #38bdf8;">Total general</td><td style="padding:12px 8px;"></td>'
+            for k in _hk:
+                v = total[k]
+                if k == "kroton":
+                    cells += f'<td style="padding:12px 8px; text-align:center; font-weight:700; color:#0EA5E9; font-size:13px;">{v}%</td>'
+                elif k == "growth":
+                    cells += f'<td style="padding:12px 8px; text-align:center; font-weight:700; color:#10B981; font-size:13px;">{_growth_cell(v)}</td>'
+                else:
+                    cells += f'<td style="padding:12px 8px; text-align:center; font-weight:700; color:#38bdf8; font-size:13px;">{v}%</td>'
+            rows += f'<tr style="background:#0f172a;">{cells}</tr>'
+
+            _hdr = ""
+            for h in _hd:
+                c = "color:#0EA5E9;" if h == "KROTON" else "color:#F59E0B;" if h in ("Total", "Growth") else "color:#94a3b8;"
+                _hdr += f'<th style="{_ths} {c}">{h}</th>'
+
+            st.markdown(f"""
+            <div style="overflow-x:auto; border-radius:12px; box-shadow:0 2px 12px rgba(15,23,42,0.08); border:1px solid #e2e8f0; margin-bottom:32px;">
+                <table style="width:100%; border-collapse:collapse; font-family:'Inter',sans-serif;">
+                    <thead><tr style="background:#0f172a;">
+                        <th style="{_ths} color:#f1f5f9; text-align:left; padding-left:14px;">Brand</th>
+                        <th style="{_ths} color:#f1f5f9; text-align:left;">División</th>
+                        {_hdr}
+                    </tr></thead>
+                    <tbody>{rows}</tbody>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Whole Channel
+        _qty_wc = [
+            {"brand": "Mercusys", "div": "",                      "digicorp": 7,  "fyco": 0,  "hayex": 0,  "intcomex": 54, "itd": 11, "kroton": 28, "rr": 0, "sego": 0,  "total": 100, "growth": 30},
+            {"brand": "Omada",    "div": "",                      "digicorp": 23, "fyco": 0,  "hayex": 0,  "intcomex": 20, "itd": 1,  "kroton": 40, "rr": 1, "sego": 15, "total": 100, "growth": 62},
+            {"brand": "Tapo",     "div": "",                      "digicorp": 10, "fyco": 0,  "hayex": 0,  "intcomex": 56, "itd": 5,  "kroton": 30, "rr": 0, "sego": 0,  "total": 100, "growth": 58},
+            {"brand": "TP-Link",  "div": "Consumer Networking",   "digicorp": 8,  "fyco": 0,  "hayex": 0,  "intcomex": 27, "itd": 7,  "kroton": 45, "rr": 0, "sego": 12, "total": 67,  "growth": 15},
+            {"brand": "TP-Link",  "div": "Enterprise Networking", "digicorp": 13, "fyco": 0,  "hayex": 0,  "intcomex": 15, "itd": 6,  "kroton": 50, "rr": 0, "sego": 17, "total": 16,  "growth": 23},
+            {"brand": "TP-Link",  "div": "Service Provider",      "digicorp": 14, "fyco": 23, "hayex": 20, "intcomex": 1,  "itd": 0,  "kroton": 33, "rr": 7, "sego": 2,  "total": 17,  "growth": -6},
+        ]
+        _qty_wc_sub = {"digicorp": 10, "fyco": 4, "hayex": 3, "intcomex": 21, "itd": 6, "kroton": 44, "rr": 1, "sego": 11, "total": 100, "growth": 12}
+        _qty_wc_vigi = {"digicorp": 0, "fyco": 0, "hayex": 0, "intcomex": 74, "itd": 0, "kroton": 25, "rr": 0, "sego": 0, "total": 100, "growth": 5166}
+        _qty_wc_total = {"digicorp": 12, "fyco": 3, "hayex": 2, "intcomex": 27, "itd": 5, "kroton": 40, "rr": 1, "sego": 10, "total": 100, "growth": 25}
+
+        _render_brand_table("Whole Channel", _qty_wc, _qty_wc_sub, _qty_wc_vigi, _qty_wc_total)
+
+        # W/O Retail
+        _qty_wor = [
+            {"brand": "Mercusys", "div": "",                      "digicorp": 7,  "fyco": 0,  "hayex": 0,  "intcomex": 56, "itd": 12, "kroton": 25, "rr": 0, "sego": 0,  "total": 100, "growth": 37},
+            {"brand": "Omada",    "div": "",                      "digicorp": 23, "fyco": 0,  "hayex": 0,  "intcomex": 20, "itd": 1,  "kroton": 40, "rr": 1, "sego": 15, "total": 100, "growth": 61},
+            {"brand": "Tapo",     "div": "",                      "digicorp": 19, "fyco": 0,  "hayex": 0,  "intcomex": 42, "itd": 10, "kroton": 29, "rr": 0, "sego": 0,  "total": 100, "growth": 63},
+            {"brand": "TP-Link",  "div": "Consumer Networking",   "digicorp": 10, "fyco": 0,  "hayex": 0,  "intcomex": 23, "itd": 9,  "kroton": 42, "rr": 0, "sego": 15, "total": 62,  "growth": 16},
+            {"brand": "TP-Link",  "div": "Enterprise Networking", "digicorp": 14, "fyco": 0,  "hayex": 0,  "intcomex": 14, "itd": 6,  "kroton": 47, "rr": 0, "sego": 18, "total": 18,  "growth": 21},
+            {"brand": "TP-Link",  "div": "Service Provider",      "digicorp": 14, "fyco": 23, "hayex": 20, "intcomex": 1,  "itd": 0,  "kroton": 33, "rr": 7, "sego": 2,  "total": 20,  "growth": -6},
+        ]
+        _qty_wor_sub = {"digicorp": 12, "fyco": 5, "hayex": 4, "intcomex": 17, "itd": 7, "kroton": 41, "rr": 2, "sego": 13, "total": 100, "growth": 12}
+        _qty_wor_vigi = {"digicorp": 0, "fyco": 0, "hayex": 0, "intcomex": 74, "itd": 0, "kroton": 25, "rr": 0, "sego": 0, "total": 100, "growth": 5166}
+        _qty_wor_total = {"digicorp": 14, "fyco": 3, "hayex": 3, "intcomex": 21, "itd": 6, "kroton": 39, "rr": 1, "sego": 12, "total": 100, "growth": 24}
+
+        _render_brand_table("W/O Retail", _qty_wor, _qty_wor_sub, _qty_wor_vigi, _qty_wor_total)
+
+        # ══════════════════════════════════════════════════════════════
+        # Kroton Sell-Through (USD)
+        # ══════════════════════════════════════════════════════════════
+        st.markdown("""
+        <div style="margin-top:40px; margin-bottom:20px; position:relative; overflow:hidden; border-radius:12px; padding:24px 28px; background:linear-gradient(135deg, #fdf2f8 0%, #fce7f3 40%, #fbcfe8 100%); border-left:5px solid #db2777;">
+            <div style="font-family:'Inter',sans-serif; font-size:24px; font-weight:800; color:#0f172a;">Kroton Sell-Through (USD)</div>
+            <div style="font-family:'Inter',sans-serif; font-size:13px; color:#475569; margin-top:4px;">Distribución de sell-through de Kroton por canal</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        _kst_ch = [
+            {"ch": "Distributor", "yoy": -76,  "s2025": 0,  "s2024": 0,  "s2023": 0},
+            {"ch": "ISP",         "yoy": -41,  "s2025": 8,  "s2024": 15, "s2023": 18},
+            {"ch": "Reseller",    "yoy": -9,   "s2025": 6,  "s2024": 7,  "s2023": 11},
+            {"ch": "Reseller PP", "yoy": 5,    "s2025": 57, "s2024": 57, "s2023": 50},
+            {"ch": "Retail",      "yoy": 17,   "s2025": 21, "s2024": 19, "s2023": 19},
+            {"ch": "SI",          "yoy": 505,  "s2025": 7,  "s2024": 1,  "s2023": 1},
+            {"ch": "TBD",         "yoy": -31,  "s2025": 1,  "s2024": 1,  "s2023": 2},
+        ]
+
+        _kst_rows = ""
+        for i, r in enumerate(_kst_ch):
+            bg = "background:#f8fafc;" if i % 2 == 0 else "background:#ffffff;"
+            # Highlight Reseller PP (biggest share)
+            is_top = r["s2025"] == max(x["s2025"] for x in _kst_ch)
+            bl = "border-left:3px solid #db2777;" if is_top else "border-left:3px solid transparent;"
+            fw = "font-weight:600;" if is_top else ""
+            nc = "color:#db2777;" if is_top else "color:#0f172a;"
+            _kst_rows += f"""<tr style="{bg}">
+                <td style="padding:10px 14px; {bl} {fw} {nc} font-size:13px;">{r['ch']}</td>
+                <td style="padding:10px 12px; text-align:center; font-size:13px;">{_growth_cell(r['yoy'])}</td>
+                <td style="padding:10px 12px; text-align:center; font-size:13px; {fw}">{r['s2025']}%</td>
+                <td style="padding:10px 12px; text-align:center; font-size:13px;">{r['s2024']}%</td>
+                <td style="padding:10px 12px; text-align:center; font-size:13px;">{r['s2023']}%</td>
+            </tr>"""
+        _kst_rows += """<tr style="background:#0f172a;">
+            <td style="padding:12px 14px; font-weight:700; color:#f1f5f9; font-size:13px; border-left:3px solid #38bdf8;">Total general</td>
+            <td style="padding:12px 12px; text-align:center; font-weight:700; color:#10B981; font-size:13px;">+5%</td>
+            <td style="padding:12px 12px; text-align:center; font-weight:700; color:#38bdf8; font-size:13px;">100%</td>
+            <td style="padding:12px 12px; text-align:center; font-weight:700; color:#38bdf8; font-size:13px;">100%</td>
+            <td style="padding:12px 12px; text-align:center; font-weight:700; color:#38bdf8; font-size:13px;">100%</td>
+        </tr>"""
+
+        st.markdown(f"""
+        <div style="overflow-x:auto; border-radius:12px; box-shadow:0 2px 12px rgba(15,23,42,0.08); border:1px solid #e2e8f0; margin-bottom:32px;">
+            <table style="width:100%; border-collapse:collapse; font-family:'Inter',sans-serif;">
+                <thead><tr style="background:#0f172a;">
+                    <th style="{_ths} color:#f1f5f9; text-align:left; padding-left:14px;">Channel</th>
+                    <th style="{_ths} color:#F59E0B;">YoY</th>
+                    <th style="{_ths} color:#38bdf8;">2025 Share</th>
+                    <th style="{_ths} color:#38bdf8;">2024 Share</th>
+                    <th style="{_ths} color:#38bdf8;">2023 Share</th>
+                </tr></thead>
+                <tbody>{_kst_rows}</tbody>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.stop()
+
 # ═══════════════════════════════════════════════════════════════════════
 # PÁGINA: DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════
