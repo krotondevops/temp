@@ -518,7 +518,85 @@ if _page == "Market Share":
         """
         st.markdown(_comp_t2_html, unsafe_allow_html=True)
 
-    st.stop()
+        # ── Sección: Sell-In vs Sell-Through ──
+        st.markdown("""
+        <div style="margin-top:40px; margin-bottom:20px; position:relative; overflow:hidden; border-radius:12px; padding:24px 28px; background:linear-gradient(135deg, #fffbeb 0%, #fef3c7 40%, #fde68a 100%); border-left:5px solid #f59e0b;">
+            <div style="position:absolute; top:-20px; right:-10px; width:120px; height:120px; background:radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%); pointer-events:none;"></div>
+            <div style="font-family:'Inter',sans-serif; font-size:24px; font-weight:800; color:#0f172a; letter-spacing:-0.5px;">Sell-In vs. Sell-Through</div>
+            <div style="font-family:'Inter',sans-serif; font-size:13px; color:#475569; margin-top:4px;">Comparativo mensual de ingreso vs salida — Línea COMPUTO (2025)</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        _sivst_meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"]
+        _sivst_si = [622455, 305504, 489050, 484340, 357704, 307907, 461754, 547588, 125086, 419007, 737095, 399560]
+        _sivst_st = [714552, 448717, 516263, 543543, 488994, 609858, 478213, 471032, 670989, 405073, 591251, 460300]
+        _sivst_si_total = 5257050
+        _sivst_st_total = 6398785
+
+        # ── Tabla resumen ──
+        _sivst_cells_si = "".join([f'<td style="padding:10px 8px; text-align:right; font-size:12px; color:#B45309; font-weight:500; font-variant-numeric:tabular-nums;">{v:,.0f}</td>' for v in _sivst_si])
+        _sivst_cells_st = "".join([f'<td style="padding:10px 8px; text-align:right; font-size:12px; color:#0891B2; font-weight:500; font-variant-numeric:tabular-nums;">{v:,.0f}</td>' for v in _sivst_st])
+
+        _sivst_table = f"""
+        <div style="overflow-x:auto; border-radius:12px; box-shadow:0 2px 12px rgba(15,23,42,0.08); border:1px solid #e2e8f0; margin-bottom:24px;">
+            <table style="width:100%; border-collapse:collapse; font-family:'Inter',sans-serif;">
+                <thead>
+                    <tr style="background:#0f172a;">
+                        <th style="padding:10px 14px; color:#f1f5f9; font-size:11px; text-align:left; font-weight:600; min-width:100px;"></th>
+                        {"".join([f'<th style="padding:10px 8px; color:#38bdf8; font-size:11px; text-align:right; font-weight:600;">{m}</th>' for m in _sivst_meses])}
+                        <th style="padding:10px 10px; color:#F59E0B; font-size:11px; text-align:right; font-weight:700;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background:#fffbeb;">
+                        <td style="padding:10px 14px; font-weight:700; font-size:12px; color:#B45309; border-left:3px solid #F59E0B;">Sell-In</td>
+                        {_sivst_cells_si}
+                        <td style="padding:10px 10px; text-align:right; font-weight:700; font-size:12px; color:#B45309; font-variant-numeric:tabular-nums;">${_sivst_si_total:,.0f}</td>
+                    </tr>
+                    <tr style="background:#ecfeff;">
+                        <td style="padding:10px 14px; font-weight:700; font-size:12px; color:#0891B2; border-left:3px solid #06B6D4;">Sell-Through</td>
+                        {_sivst_cells_st}
+                        <td style="padding:10px 10px; text-align:right; font-weight:700; font-size:12px; color:#0891B2; font-variant-numeric:tabular-nums;">${_sivst_st_total:,.0f}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        """
+        st.markdown(_sivst_table, unsafe_allow_html=True)
+
+        # ── Gráfico Sell-In vs Sell-Through ──
+        fig_sivst = go.Figure()
+
+        fig_sivst.add_trace(go.Scatter(
+            x=_sivst_meses, y=_sivst_si,
+            name="Sell-In",
+            mode="lines+markers",
+            line=dict(color="#F59E0B", width=3, shape="spline", smoothing=0.8),
+            marker=dict(size=7, color="#F59E0B"),
+            hovertemplate="<b>Sell-In</b><br>%{x}: $%{y:,.0f}<extra></extra>",
+        ))
+
+        fig_sivst.add_trace(go.Scatter(
+            x=_sivst_meses, y=_sivst_st,
+            name="Sell-Through",
+            mode="lines+markers",
+            line=dict(color="#06B6D4", width=3, shape="spline", smoothing=0.8),
+            marker=dict(size=7, color="#06B6D4"),
+            hovertemplate="<b>Sell-Through</b><br>%{x}: $%{y:,.0f}<extra></extra>",
+        ))
+
+        fig_sivst.update_layout(
+            height=420,
+            margin=dict(t=30, b=40, l=20, r=20),
+            plot_bgcolor="white",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
+                        font=dict(size=13)),
+            yaxis=dict(showgrid=True, gridcolor="rgba(226,232,240,0.6)", gridwidth=1,
+                       tickformat=",.0f", tickfont=dict(size=11, color="#94a3b8"),
+                       title=""),
+            xaxis=dict(showgrid=False, type="category"),
+        )
+        st.plotly_chart(fig_sivst, use_container_width=True)
 
 # ═══════════════════════════════════════════════════════════════════════
 # PÁGINA: DASHBOARD
