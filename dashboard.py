@@ -113,6 +113,181 @@ st.sidebar.markdown(
     'style="width:150px; border-radius:0;">',
     unsafe_allow_html=True,
 )
+
+# ─── NAVEGACIÓN ──────────────────────────────────────────────────────
+st.sidebar.markdown("---")
+_page = st.sidebar.radio("Navegación", ["Dashboard", "Market Share"], horizontal=True, key="nav_page")
+st.sidebar.markdown("---")
+
+# ═══════════════════════════════════════════════════════════════════════
+# PÁGINA: MARKET SHARE
+# ═══════════════════════════════════════════════════════════════════════
+if _page == "Market Share":
+    st.subheader("Market Share — Línea CATV")
+
+    # Datos de market share CATV por año
+    _ms_data = [
+        {"empresa": "NVL",                  "2023_monto": 2564908.05, "2023_ms": 8.90,  "2024_monto": 1826249.54, "2024_ms": 7.99,  "2025_monto": 2792469.21, "2025_ms": 13.65, "2026_monto": 525384.99,  "2026_ms": 23.90},
+        {"empresa": "OPTICTIMES",           "2023_monto": 9028407.06, "2023_ms": 31.32, "2024_monto": 4882733.11, "2024_ms": 21.37, "2025_monto": 2674399.25, "2025_ms": 13.07, "2026_monto": 439790.20,  "2026_ms": 20.01},
+        {"empresa": "MACROTEL",             "2023_monto": 2041904.83, "2023_ms": 7.08,  "2024_monto": 4305252.09, "2024_ms": 18.85, "2025_monto": 2157461.69, "2025_ms": 10.54, "2026_monto": 347823.72,  "2026_ms": 15.82},
+        {"empresa": "RING RING",            "2023_monto": 3367944.02, "2023_ms": 11.68, "2024_monto": 3216781.28, "2024_ms": 14.08, "2025_monto": 2003302.14, "2025_ms": 9.79,  "2026_monto": 204580.32,  "2026_ms": 9.31},
+        {"empresa": "LANLY",                "2023_monto": 0,          "2023_ms": 0.00,  "2024_monto": 0,          "2024_ms": 0.00,  "2025_monto": 664405.89,  "2025_ms": 3.25,  "2026_monto": 152936.80,  "2026_ms": 6.96},
+        {"empresa": "HAYEX",                "2023_monto": 5396810.95, "2023_ms": 18.72, "2024_monto": 3406382.91, "2024_ms": 14.91, "2025_monto": 2227740.65, "2025_ms": 10.89, "2026_monto": 138771.43,  "2026_ms": 6.31},
+        {"empresa": "LATIC",                "2023_monto": 0,          "2023_ms": 0.00,  "2024_monto": 0,          "2024_ms": 0.00,  "2025_monto": 1369412.97, "2025_ms": 6.69,  "2026_monto": 133336.52,  "2026_ms": 6.07},
+        {"empresa": "LIEFERANT",            "2023_monto": 1816200.30, "2023_ms": 6.30,  "2024_monto": 1542084.62, "2024_ms": 6.75,  "2025_monto": 1087556.14, "2025_ms": 5.32,  "2026_monto": 124920.14,  "2026_ms": 5.68},
+        {"empresa": "SCIENTIFIC SATELLITE", "2023_monto": 1548781.48, "2023_ms": 5.37,  "2024_monto": 1219518.03, "2024_ms": 5.34,  "2025_monto": 1310996.48, "2025_ms": 6.41,  "2026_monto": 99209.96,   "2026_ms": 4.51},
+        {"empresa": "KROTON",               "2023_monto": 2355368.77, "2023_ms": 8.17,  "2024_monto": 1181422.97, "2024_ms": 5.17,  "2025_monto": 3247458.12, "2025_ms": 15.87, "2026_monto": 61374.52,   "2026_ms": 2.79},
+        {"empresa": "WURFEL",               "2023_monto": 467369.90,  "2023_ms": 1.62,  "2024_monto": 1264690.70, "2024_ms": 5.54,  "2025_monto": 926070.67,  "2025_ms": 4.53,  "2026_monto": 31477.21,   "2026_ms": 1.43},
+        {"empresa": "MULTIPLAY",            "2023_monto": 241196.60,  "2023_ms": 0.84,  "2024_monto": 0,          "2024_ms": 0.00,  "2025_monto": 0,          "2025_ms": 0.00,  "2026_monto": 0,          "2026_ms": 0.00},
+    ]
+    _ms_total = {
+        "2023_monto": 28828891.96, "2024_monto": 22845115.25, "2025_monto": 20461273.20, "2026_monto": 2198231.79,
+    }
+
+    _kroton_ms = {"2023": 8.17, "2024": 5.17, "2025": 15.87, "2026": 2.79}
+
+    # ── Mini gráfico de evolución Kroton MS + KPI ──
+    _ms_krt_col1, _ms_krt_col2 = st.columns([1.2, 1])
+
+    with _ms_krt_col1:
+        fig_krt_ms = go.Figure()
+        _krt_years = list(_kroton_ms.keys())
+        _krt_values = list(_kroton_ms.values())
+        fig_krt_ms.add_trace(go.Scatter(
+            x=_krt_years, y=_krt_values,
+            mode="lines+markers+text",
+            line=dict(color="#E31C25", width=3, shape="spline", smoothing=0.8),
+            marker=dict(size=10, color="#E31C25", line=dict(width=2, color="white")),
+            text=[f"{v:.1f}%" for v in _krt_values],
+            textposition="top center",
+            textfont=dict(size=14, color="#E31C25", family="Inter, sans-serif"),
+            fill="tozeroy",
+            fillcolor="rgba(227,28,37,0.06)",
+            cliponaxis=False,
+        ))
+        fig_krt_ms.update_layout(
+            height=220,
+            margin=dict(t=30, b=30, l=20, r=20),
+            plot_bgcolor="white",
+            title=dict(text="Evolución Market Share Kroton", font=dict(size=13, color="#334155")),
+            yaxis=dict(showticklabels=False, showgrid=False, title="", range=[0, max(_krt_values) * 1.5]),
+            xaxis=dict(showgrid=False),
+        )
+        st.plotly_chart(fig_krt_ms, use_container_width=True)
+
+    with _ms_krt_col2:
+        _krt_best_year = max(_kroton_ms, key=_kroton_ms.get)
+        _krt_best_val = _kroton_ms[_krt_best_year]
+        _krt_current = _kroton_ms["2026"]
+        _krt_prev = _kroton_ms["2025"]
+        _krt_delta = _krt_current - _krt_prev
+        _krt_delta_color = "#10B981" if _krt_delta >= 0 else "#EF4444"
+        _krt_delta_arrow = "&#9650;" if _krt_delta >= 0 else "&#9660;"
+
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg, #0f172a, #1e3a5f); border-radius:12px; padding:20px 24px; color:white; margin-top:8px;">
+            <div style="font-size:11px; color:rgba(148,163,184,0.7); letter-spacing:2px; text-transform:uppercase; margin-bottom:12px;">KROTON EN EL MERCADO CATV</div>
+            <div style="display:flex; gap:24px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-size:10px; color:rgba(148,163,184,0.6); text-transform:uppercase;">MS Actual (2026)</div>
+                    <div style="font-size:28px; font-weight:700; color:#f1f5f9;">{_krt_current:.2f}%</div>
+                </div>
+                <div>
+                    <div style="font-size:10px; color:rgba(148,163,184,0.6); text-transform:uppercase;">Mejor Año</div>
+                    <div style="font-size:28px; font-weight:700; color:#38bdf8;">{_krt_best_val:.2f}%</div>
+                    <div style="font-size:11px; color:rgba(148,163,184,0.5);">{_krt_best_year}</div>
+                </div>
+                <div>
+                    <div style="font-size:10px; color:rgba(148,163,184,0.6); text-transform:uppercase;">vs 2025</div>
+                    <div style="font-size:28px; font-weight:700; color:{_krt_delta_color};">{_krt_delta_arrow} {_krt_delta:+.2f}pp</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Tabla de Market Share ──
+    def _fmt_monto(v):
+        if v == 0:
+            return '<span style="color:#cbd5e1;">—</span>'
+        return f"{v:,.2f}"
+
+    def _fmt_ms(v):
+        if v == 0:
+            return '<span style="color:#cbd5e1;">0.00%</span>'
+        return f"{v:.2f}%"
+
+    def _ms_bar(v, max_v=32):
+        w = min(v / max_v * 100, 100) if max_v > 0 else 0
+        return f'<div style="position:relative; min-width:60px;"><div style="position:absolute; top:0; left:0; height:100%; width:{w:.0f}%; background:rgba(37,99,235,0.08); border-radius:3px;"></div><span style="position:relative; z-index:1;">{v:.2f}%</span></div>'
+
+    _rows_html = ""
+    for i, row in enumerate(_ms_data):
+        is_kroton = row["empresa"] == "KROTON"
+        bg = "background:linear-gradient(90deg, rgba(227,28,37,0.08), rgba(227,28,37,0.03));" if is_kroton else (
+            "background:#f8fafc;" if i % 2 == 0 else "background:#ffffff;"
+        )
+        fw = "font-weight:700;" if is_kroton else "font-weight:400;"
+        border = "border-left:3px solid #E31C25;" if is_kroton else "border-left:3px solid transparent;"
+        name_color = "color:#E31C25;" if is_kroton else "color:#0f172a;"
+
+        _rows_html += f"""<tr style="{bg}">
+            <td style="padding:10px 14px; {border} {fw} {name_color} white-space:nowrap; font-size:13px;">{row['empresa']}</td>
+            <td style="padding:10px 12px; text-align:right; font-size:13px; color:#334155; {fw} font-variant-numeric:tabular-nums;">{_fmt_monto(row['2023_monto'])}</td>
+            <td style="padding:10px 12px; text-align:right; font-size:13px; {fw}">{_ms_bar(row['2023_ms'])}</td>
+            <td style="padding:10px 12px; text-align:right; font-size:13px; color:#334155; {fw} font-variant-numeric:tabular-nums;">{_fmt_monto(row['2024_monto'])}</td>
+            <td style="padding:10px 12px; text-align:right; font-size:13px; {fw}">{_ms_bar(row['2024_ms'])}</td>
+            <td style="padding:10px 12px; text-align:right; font-size:13px; color:#334155; {fw} font-variant-numeric:tabular-nums;">{_fmt_monto(row['2025_monto'])}</td>
+            <td style="padding:10px 12px; text-align:right; font-size:13px; {fw}">{_ms_bar(row['2025_ms'])}</td>
+            <td style="padding:10px 12px; text-align:right; font-size:13px; color:#334155; {fw} font-variant-numeric:tabular-nums;">{_fmt_monto(row['2026_monto'])}</td>
+            <td style="padding:10px 12px; text-align:right; font-size:13px; {fw}">{_ms_bar(row['2026_ms'])}</td>
+        </tr>"""
+
+    _rows_html += f"""<tr style="background:#0f172a;">
+        <td style="padding:12px 14px; font-weight:700; color:#f1f5f9; font-size:13px; border-left:3px solid #38bdf8;">Total general</td>
+        <td style="padding:12px 12px; text-align:right; font-weight:700; color:#f1f5f9; font-size:13px; font-variant-numeric:tabular-nums;">{_ms_total['2023_monto']:,.2f}</td>
+        <td style="padding:12px 12px; text-align:right; font-weight:700; color:#38bdf8; font-size:13px;">100.00%</td>
+        <td style="padding:12px 12px; text-align:right; font-weight:700; color:#f1f5f9; font-size:13px; font-variant-numeric:tabular-nums;">{_ms_total['2024_monto']:,.2f}</td>
+        <td style="padding:12px 12px; text-align:right; font-weight:700; color:#38bdf8; font-size:13px;">100.00%</td>
+        <td style="padding:12px 12px; text-align:right; font-weight:700; color:#f1f5f9; font-size:13px; font-variant-numeric:tabular-nums;">{_ms_total['2025_monto']:,.2f}</td>
+        <td style="padding:12px 12px; text-align:right; font-weight:700; color:#38bdf8; font-size:13px;">100.00%</td>
+        <td style="padding:12px 12px; text-align:right; font-weight:700; color:#f1f5f9; font-size:13px; font-variant-numeric:tabular-nums;">{_ms_total['2026_monto']:,.2f}</td>
+        <td style="padding:12px 12px; text-align:right; font-weight:700; color:#38bdf8; font-size:13px;">100.00%</td>
+    </tr>"""
+
+    _ms_table_html = f"""
+    <div style="overflow-x:auto; border-radius:12px; box-shadow:0 2px 12px rgba(15,23,42,0.08); border:1px solid #e2e8f0;">
+        <table style="width:100%; border-collapse:collapse; font-family:'Inter',sans-serif;">
+            <thead>
+                <tr style="background:#0f172a;">
+                    <th rowspan="2" style="padding:12px 14px; color:#f1f5f9; font-size:12px; text-align:left; letter-spacing:0.5px; font-weight:600; vertical-align:middle; border-right:1px solid rgba(255,255,255,0.1);">LINEA CATV</th>
+                    <th colspan="2" style="padding:10px 12px; color:#38bdf8; font-size:12px; text-align:center; letter-spacing:1px; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.1); border-right:1px solid rgba(255,255,255,0.1);">2023</th>
+                    <th colspan="2" style="padding:10px 12px; color:#38bdf8; font-size:12px; text-align:center; letter-spacing:1px; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.1); border-right:1px solid rgba(255,255,255,0.1);">2024</th>
+                    <th colspan="2" style="padding:10px 12px; color:#38bdf8; font-size:12px; text-align:center; letter-spacing:1px; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.1); border-right:1px solid rgba(255,255,255,0.1);">2025</th>
+                    <th colspan="2" style="padding:10px 12px; color:#38bdf8; font-size:12px; text-align:center; letter-spacing:1px; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.1);">2026</th>
+                </tr>
+                <tr style="background:#1e293b;">
+                    <th style="padding:8px 12px; color:#94a3b8; font-size:10px; text-align:right; letter-spacing:1px; text-transform:uppercase; font-weight:500;">MONTO</th>
+                    <th style="padding:8px 12px; color:#94a3b8; font-size:10px; text-align:right; letter-spacing:1px; text-transform:uppercase; font-weight:500; border-right:1px solid rgba(255,255,255,0.1);">MS</th>
+                    <th style="padding:8px 12px; color:#94a3b8; font-size:10px; text-align:right; letter-spacing:1px; text-transform:uppercase; font-weight:500;">MONTO</th>
+                    <th style="padding:8px 12px; color:#94a3b8; font-size:10px; text-align:right; letter-spacing:1px; text-transform:uppercase; font-weight:500; border-right:1px solid rgba(255,255,255,0.1);">MS</th>
+                    <th style="padding:8px 12px; color:#94a3b8; font-size:10px; text-align:right; letter-spacing:1px; text-transform:uppercase; font-weight:500;">MONTO</th>
+                    <th style="padding:8px 12px; color:#94a3b8; font-size:10px; text-align:right; letter-spacing:1px; text-transform:uppercase; font-weight:500; border-right:1px solid rgba(255,255,255,0.1);">MS</th>
+                    <th style="padding:8px 12px; color:#94a3b8; font-size:10px; text-align:right; letter-spacing:1px; text-transform:uppercase; font-weight:500;">MONTO</th>
+                    <th style="padding:8px 12px; color:#94a3b8; font-size:10px; text-align:right; letter-spacing:1px; text-transform:uppercase; font-weight:500;">MS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {_rows_html}
+            </tbody>
+        </table>
+    </div>
+    """
+    st.markdown(_ms_table_html, unsafe_allow_html=True)
+    st.stop()
+
+# ═══════════════════════════════════════════════════════════════════════
+# PÁGINA: DASHBOARD
+# ═══════════════════════════════════════════════════════════════════════
 st.sidebar.title("Filtros")
 
 all_canales = sorted(df["CANAL"].unique())
@@ -1482,3 +1657,4 @@ if canal_sel == ["RETAIL"]:
                 f"Venta: {fmt_k(_so_worst_cat['V_USD'])}. Evaluar surtido o visibilidad en tienda.",
                 "#EF4444",
             )
+
