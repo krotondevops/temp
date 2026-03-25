@@ -174,7 +174,7 @@ if _page == "Market Share":
                 plot_bgcolor="white",
                 title=dict(text="Evolución Market Share Kroton", font=dict(size=13, color="#334155")),
                 yaxis=dict(showticklabels=False, showgrid=False, title="", range=[0, max(_krt_values) * 1.5]),
-                xaxis=dict(showgrid=False),
+                xaxis=dict(showgrid=False, type="category"),
             )
             st.plotly_chart(fig_krt_ms, use_container_width=True)
 
@@ -330,7 +330,7 @@ if _page == "Market Share":
                 plot_bgcolor="white",
                 title=dict(text="Evolución Market Share Kroton — COMPUTO", font=dict(size=13, color="#334155")),
                 yaxis=dict(showticklabels=False, showgrid=False, title="", range=[0, max(_kc_values) * 1.4]),
-                xaxis=dict(showgrid=False),
+                xaxis=dict(showgrid=False, type="category"),
             )
             st.plotly_chart(fig_krt_comp, use_container_width=True)
 
@@ -364,8 +364,17 @@ if _page == "Market Share":
             </div>
             """, unsafe_allow_html=True)
 
+        # ── Sección: Sell-In Market Share ──
+        st.markdown("""
+        <div style="margin-top:32px; margin-bottom:20px; position:relative; overflow:hidden; border-radius:12px; padding:24px 28px; background:linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 40%, #99f6e4 100%); border-left:5px solid #14b8a6;">
+            <div style="position:absolute; top:-20px; right:-10px; width:120px; height:120px; background:radial-gradient(circle, rgba(20,184,166,0.15) 0%, transparent 70%); pointer-events:none;"></div>
+            <div style="font-family:'Inter',sans-serif; font-size:24px; font-weight:800; color:#0f172a; letter-spacing:-0.5px;">Sell-In Market Share</div>
+            <div style="font-family:'Inter',sans-serif; font-size:13px; color:#475569; margin-top:4px;">Participación de mercado por distribuidor y marca — Línea COMPUTO</div>
+        </div>
+        """, unsafe_allow_html=True)
+
         # ── Tabla 1: Sell-In Market Share por Distribuidor ──
-        st.markdown("##### Sell-In Market Share por Distribuidor")
+        st.markdown("##### Por Distribuidor")
 
         def _comp_pct(v):
             if v is None:
@@ -427,7 +436,7 @@ if _page == "Market Share":
         st.markdown(_comp_t1_html, unsafe_allow_html=True)
 
         # ── Tabla 2: Market Share por Brand / División ──
-        st.markdown("##### Market Share por Brand / División")
+        st.markdown("##### Por Brand / División")
 
         _comp_brand = [
             {"brand": "Mercusys",       "div": "",                      "digicorp": 12, "intcomex": 58, "itd": 11, "kroton": 19, "rr": 0,  "sego": 0,  "tpe": 2,   "growth": 100},
