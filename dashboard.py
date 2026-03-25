@@ -418,7 +418,7 @@ if canal_sel == ["RETAIL"]:
         <div class="kpi-year">2025</div>
         <div class="kpi-row">
           <div class="kpi-card"><div class="kpi-label">Vta. Prom. Mes</div><div class="kpi-value accent">{fmt_k(_so_prom_vta_25)}</div></div>
-          <div class="kpi-card"><div class="kpi-label">Uds. Prom. Mes</div><div class="kpi-value amber">{_so_prom_uds_25:,.0f}</div></div>
+          <div class="kpi-card"><div class="kpi-label">Und. Prom. Mes</div><div class="kpi-value amber">{_so_prom_uds_25:,.0f}</div></div>
           <div class="kpi-card"><div class="kpi-label">Ticket Prom.</div><div class="kpi-value">${_so_ticket_25:,.1f}</div></div>
         </div>
       </div>
@@ -426,7 +426,7 @@ if canal_sel == ["RETAIL"]:
         <div class="kpi-year">2026</div>
         <div class="kpi-row">
           <div class="kpi-card"><div class="kpi-label">Vta. Prom. Mes</div><div class="kpi-value accent">{fmt_k(_so_prom_vta_26)}</div></div>
-          <div class="kpi-card"><div class="kpi-label">Uds. Prom. Mes</div><div class="kpi-value amber">{_so_prom_uds_26:,.0f}</div></div>
+          <div class="kpi-card"><div class="kpi-label">Und. Prom. Mes</div><div class="kpi-value amber">{_so_prom_uds_26:,.0f}</div></div>
           <div class="kpi-card"><div class="kpi-label">Ticket Prom.</div><div class="kpi-value">${_so_ticket_26:,.1f}</div></div>
         </div>
       </div>
