@@ -97,6 +97,40 @@ def load_stock_sellout():
 df_stock_so = load_stock_sellout()
 
 
+@st.cache_data
+def load_pipeline_proyectos():
+    dp = pd.read_excel(
+        "pipeline_lquispe.xlsx",
+        sheet_name="Seguimiento de Proyectos",
+        header=4,  # Row 5 is the header
+    )
+    dp = dp.dropna(subset=["CLIENTE"])
+    dp["MONTO"] = pd.to_numeric(dp["MONTO"], errors="coerce").fillna(0)
+    dp["STATUS"] = dp["STATUS"].astype(str).str.strip()
+    status_map = {
+        "COTIZACIÓN": "COTIZACIÓN", "COTIZACI\u00d3N": "COTIZACIÓN",
+        "NEGOCIACIÓN": "NEGOCIACIÓN", "NEGOCIACI\u00d3N": "NEGOCIACIÓN",
+    }
+    dp["STATUS"] = dp["STATUS"].replace(status_map)
+    return dp
+
+
+@st.cache_data
+def load_pipeline_cotizaciones():
+    dc = pd.read_excel(
+        "pipeline_lquispe.xlsx",
+        sheet_name="Seguimiento de Cotizaciones",
+    )
+    dc = dc.dropna(subset=["Cotización"])
+    dc["Total a Facturar"] = pd.to_numeric(dc["Total a Facturar"], errors="coerce").fillna(0)
+    dc["Fecha Pedido"] = pd.to_datetime(dc["Fecha Pedido"], errors="coerce")
+    return dc
+
+
+df_pipeline = load_pipeline_proyectos()
+df_cotizaciones = load_pipeline_cotizaciones()
+
+
 # ─── FUNCIONES ────────────────────────────────────────────────────────
 def calc_margen_pct(venta, margen):
     """Replica la lógica DAX de % Margen Final."""
@@ -116,7 +150,7 @@ st.sidebar.markdown(
 
 # ─── NAVEGACIÓN ──────────────────────────────────────────────────────
 st.sidebar.markdown("---")
-_page = st.sidebar.radio("Navegación", ["Dashboard", "Market Share"], horizontal=True, key="nav_page")
+_page = st.sidebar.radio("Navegación", ["Dashboard", "Market Share", "Pipeline"], horizontal=True, key="nav_page")
 st.sidebar.markdown("---")
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -898,6 +932,432 @@ if _page == "Market Share":
     st.stop()
 
 # ═══════════════════════════════════════════════════════════════════════
+# PÁGINA: PIPELINE (INTEGRADOR)
+# ═══════════════════════════════════════════════════════════════════════
+if _page == "Pipeline":
+    _STATUS_ORDER = ["GANADO", "NEGOCIACIÓN", "COTIZACIÓN", "PERDIDO"]
+    _STATUS_COLORS = {
+        "GANADO": "#10B981",
+        "NEGOCIACIÓN": "#F59E0B",
+        "COTIZACIÓN": "#3B82F6",
+        "PERDIDO": "#EF4444",
+    }
+    _COT_COLORS = {
+        "Aprobado": "#10B981",
+        "Normal": "#3B82F6",
+        "Perdido": "#EF4444",
+    }
+
+    # ── Header ──
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:14px;padding:28px 32px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div style="background:rgba(59,130,246,.15);border-radius:10px;padding:10px 14px;">
+                <span style="font-size:1.8rem;">🏗️</span>
+            </div>
+            <div>
+                <h2 style="margin:0;color:#f1f5f9;font-weight:700;font-size:1.5rem;">Pipeline Comercial — Canal Integrador</h2>
+                <p style="margin:4px 0 0;color:#94a3b8;font-size:.85rem;">Seguimiento de proyectos y cotizaciones · Pipeline Comercial 2026</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Tabs principales ──
+    _pip_tab_proy, _pip_tab_cot = st.tabs(["📋 Seguimiento de Proyectos", "📄 Seguimiento de Cotizaciones"])
+
+    # ──────────────────────────────────────────────────────────────────
+    # TAB 1: SEGUIMIENTO DE PROYECTOS
+    # ──────────────────────────────────────────────────────────────────
+    with _pip_tab_proy:
+        _dp = df_pipeline.copy()
+
+        # Excluir PERDIDO del pipeline activo para KPIs de valor
+        _dp_activo = _dp[_dp["STATUS"] != "PERDIDO"]
+        _dp_ganado = _dp[_dp["STATUS"] == "GANADO"]
+        _dp_negoc = _dp[_dp["STATUS"] == "NEGOCIACIÓN"]
+        _dp_cotiz = _dp[_dp["STATUS"] == "COTIZACIÓN"]
+        _dp_perdido = _dp[_dp["STATUS"] == "PERDIDO"]
+
+        _total_pipeline = _dp_activo["MONTO"].sum()
+        _total_ganado = _dp_ganado["MONTO"].sum()
+        _total_negoc = _dp_negoc["MONTO"].sum()
+        _total_cotiz = _dp_cotiz["MONTO"].sum()
+        _n_proyectos = len(_dp)
+        _n_ganados = len(_dp_ganado)
+        _tasa_cierre = (_n_ganados / _n_proyectos * 100) if _n_proyectos > 0 else 0
+
+        # ── KPIs ──
+        _kc1, _kc2, _kc3, _kc4, _kc5, _kc6 = st.columns(6)
+        _kpi_style = (
+            "background:#fff;border:1px solid #e2e8f0;border-radius:12px;"
+            "padding:16px 12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);"
+        )
+        _kpi_lbl = "font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em;"
+        _kpi_val = "font-size:1.35rem;font-weight:700;color:#0f172a;line-height:1.2;"
+
+        def _fmt_usd(v):
+            if abs(v) >= 1_000_000:
+                return f"$ {v/1_000_000:,.2f}M"
+            if abs(v) >= 1_000:
+                return f"$ {v/1_000:,.1f}K"
+            return f"$ {v:,.0f}"
+
+        with _kc1:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">💰</div>
+                <div style="{_kpi_lbl}">Pipeline Activo</div>
+                <div style="{_kpi_val}">{_fmt_usd(_total_pipeline)}</div>
+            </div>""", unsafe_allow_html=True)
+        with _kc2:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">✅</div>
+                <div style="{_kpi_lbl}">Ganados</div>
+                <div style="{_kpi_val} color:#10B981;">{_fmt_usd(_total_ganado)}</div>
+            </div>""", unsafe_allow_html=True)
+        with _kc3:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">🤝</div>
+                <div style="{_kpi_lbl}">En Negociación</div>
+                <div style="{_kpi_val} color:#F59E0B;">{_fmt_usd(_total_negoc)}</div>
+            </div>""", unsafe_allow_html=True)
+        with _kc4:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">📝</div>
+                <div style="{_kpi_lbl}">Cotizaciones</div>
+                <div style="{_kpi_val} color:#3B82F6;">{_fmt_usd(_total_cotiz)}</div>
+            </div>""", unsafe_allow_html=True)
+        with _kc5:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">📊</div>
+                <div style="{_kpi_lbl}">Total Proyectos</div>
+                <div style="{_kpi_val}">{_n_proyectos}</div>
+            </div>""", unsafe_allow_html=True)
+        with _kc6:
+            _tc_color = "#10B981" if _tasa_cierre >= 20 else "#F59E0B" if _tasa_cierre >= 10 else "#EF4444"
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">🎯</div>
+                <div style="{_kpi_lbl}">Tasa de Cierre</div>
+                <div style="{_kpi_val} color:{_tc_color};">{_tasa_cierre:.1f}%</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
+        # ── Row: Funnel + Monto por Status ──
+        _col_funnel, _col_marca = st.columns(2)
+
+        with _col_funnel:
+            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Embudo de Pipeline por Status</div>", unsafe_allow_html=True)
+            _by_status = _dp.groupby("STATUS").agg(
+                MONTO=("MONTO", "sum"), COUNT=("MONTO", "count")
+            ).reset_index()
+            # Reorder by funnel logic
+            _status_idx = {s: i for i, s in enumerate(_STATUS_ORDER)}
+            _by_status["_order"] = _by_status["STATUS"].map(_status_idx).fillna(99)
+            _by_status = _by_status.sort_values("_order")
+
+            fig_funnel = go.Figure(go.Funnel(
+                y=_by_status["STATUS"],
+                x=_by_status["MONTO"],
+                textinfo="value+percent initial",
+                texttemplate="$%{value:,.0f}<br>%{percentInitial:.1%}",
+                marker=dict(
+                    color=[_STATUS_COLORS.get(s, "#94a3b8") for s in _by_status["STATUS"]],
+                ),
+                connector=dict(line=dict(color="#e2e8f0", width=1)),
+            ))
+            fig_funnel.update_layout(
+                height=360,
+                margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Inter, sans-serif", size=12, color="#334155"),
+            )
+            st.plotly_chart(fig_funnel, use_container_width=True)
+
+        with _col_marca:
+            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Pipeline por Marca</div>", unsafe_allow_html=True)
+            _by_marca = _dp_activo.groupby("MARCA")["MONTO"].sum().reset_index().sort_values("MONTO", ascending=True)
+            _pal = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16", "#ef4444"]
+            fig_marca = go.Figure(go.Bar(
+                y=_by_marca["MARCA"],
+                x=_by_marca["MONTO"],
+                orientation="h",
+                marker=dict(
+                    color=_pal[:len(_by_marca)],
+                    cornerradius=4,
+                ),
+                text=[_fmt_usd(v) for v in _by_marca["MONTO"]],
+                textposition="outside",
+                textfont=dict(size=11, color="#334155"),
+            ))
+            fig_marca.update_layout(
+                height=360,
+                margin=dict(l=10, r=80, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Inter, sans-serif", size=12, color="#334155"),
+                xaxis=dict(gridcolor="#e2e8f0", title=""),
+                yaxis=dict(title=""),
+            )
+            st.plotly_chart(fig_marca, use_container_width=True)
+
+        # ── Row: Por Vendedor + Timeline Mensual ──
+        _col_vend, _col_time = st.columns(2)
+
+        with _col_vend:
+            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Pipeline por Vendedor</div>", unsafe_allow_html=True)
+            _by_vend = _dp_activo.groupby("VENDEDOR").agg(
+                MONTO=("MONTO", "sum"), COUNT=("MONTO", "count")
+            ).reset_index().sort_values("MONTO", ascending=True)
+
+            fig_vend = go.Figure()
+            fig_vend.add_trace(go.Bar(
+                y=_by_vend["VENDEDOR"],
+                x=_by_vend["MONTO"],
+                orientation="h",
+                marker=dict(color="#3b82f6", cornerradius=4),
+                text=[f"{_fmt_usd(m)} ({int(c)} proy.)" for m, c in zip(_by_vend["MONTO"], _by_vend["COUNT"])],
+                textposition="outside",
+                textfont=dict(size=11),
+            ))
+            fig_vend.update_layout(
+                height=300,
+                margin=dict(l=10, r=100, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Inter, sans-serif", size=12, color="#334155"),
+                xaxis=dict(gridcolor="#e2e8f0", title=""),
+                yaxis=dict(title=""),
+            )
+            st.plotly_chart(fig_vend, use_container_width=True)
+
+        with _col_time:
+            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Pipeline por Mes Estimado de Cierre</div>", unsafe_allow_html=True)
+            _mes_col = "MES ESTIMADO DE CIERRE"
+            if _mes_col in _dp_activo.columns:
+                _by_mes = _dp_activo.groupby(_mes_col)["MONTO"].sum().reset_index()
+                _by_mes["_order"] = _by_mes[_mes_col].map(MESES_ORDEN).fillna(99)
+                _by_mes = _by_mes.sort_values("_order")
+
+                fig_mes = go.Figure(go.Bar(
+                    x=_by_mes[_mes_col],
+                    y=_by_mes["MONTO"],
+                    marker=dict(
+                        color=_by_mes["MONTO"],
+                        colorscale=[[0, "#bfdbfe"], [1, "#1d4ed8"]],
+                        cornerradius=6,
+                    ),
+                    text=[_fmt_usd(v) for v in _by_mes["MONTO"]],
+                    textposition="outside",
+                    textfont=dict(size=11, color="#334155"),
+                ))
+                fig_mes.update_layout(
+                    height=300,
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(family="Inter, sans-serif", size=12, color="#334155"),
+                    xaxis=dict(type="category", title=""),
+                    yaxis=dict(gridcolor="#e2e8f0", title=""),
+                )
+                st.plotly_chart(fig_mes, use_container_width=True)
+
+        # ── Detalle por Status (stacked) ──
+        st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Detalle por Mes y Status</div>", unsafe_allow_html=True)
+        _mes_col_cierre = "MES ESTIMADO DE CIERRE"
+        if _mes_col_cierre in _dp.columns:
+            _by_mes_st = _dp[_dp["STATUS"] != "PERDIDO"].groupby([_mes_col_cierre, "STATUS"])["MONTO"].sum().reset_index()
+            _by_mes_st["_order"] = _by_mes_st[_mes_col_cierre].map(MESES_ORDEN).fillna(99)
+            _by_mes_st = _by_mes_st.sort_values("_order")
+
+            fig_stacked = go.Figure()
+            for s in ["GANADO", "NEGOCIACIÓN", "COTIZACIÓN"]:
+                _sd = _by_mes_st[_by_mes_st["STATUS"] == s]
+                fig_stacked.add_trace(go.Bar(
+                    x=_sd[_mes_col_cierre],
+                    y=_sd["MONTO"],
+                    name=s,
+                    marker=dict(color=_STATUS_COLORS.get(s, "#94a3b8"), cornerradius=4),
+                ))
+            fig_stacked.update_layout(
+                barmode="stack",
+                height=350,
+                margin=dict(l=40, r=20, t=10, b=40),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Inter, sans-serif", size=12, color="#334155"),
+                xaxis=dict(type="category", title=""),
+                yaxis=dict(gridcolor="#e2e8f0", title="Monto (USD)"),
+                legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center"),
+            )
+            st.plotly_chart(fig_stacked, use_container_width=True)
+
+        # ── Tabla detallada de proyectos ──
+        with st.expander("📋 Ver tabla de proyectos detallada", expanded=False):
+            _show_cols = ["CLIENTE", "PROYECTO", "VENDEDOR", "STATUS", "MONTO", "MARCA",
+                          "PRODUCTOS", "COND. PAGO", "MES INICIO", "MES ESTIMADO DE CIERRE",
+                          "MES DE FACTURACION", "CONTACTO", "COMENTARIOS"]
+            _existing = [c for c in _show_cols if c in _dp.columns]
+            _dp_show = _dp[_existing].copy()
+            _dp_show["MONTO"] = _dp_show["MONTO"].apply(lambda v: f"$ {v:,.2f}" if v > 0 else "-")
+            st.dataframe(_dp_show, use_container_width=True, height=400)
+
+    # ──────────────────────────────────────────────────────────────────
+    # TAB 2: SEGUIMIENTO DE COTIZACIONES
+    # ──────────────────────────────────────────────────────────────────
+    with _pip_tab_cot:
+        _dc = df_cotizaciones.copy()
+
+        _total_cots = len(_dc)
+        _cots_aprob = _dc[_dc["Estado"] == "Aprobado"]
+        _cots_normal = _dc[_dc["Estado"] == "Normal"]
+        _cots_perdido = _dc[_dc["Estado"] == "Perdido"]
+        _monto_total = _dc["Total a Facturar"].sum()
+        _monto_aprob = _cots_aprob["Total a Facturar"].sum()
+        _monto_normal = _cots_normal["Total a Facturar"].sum()
+        _tasa_aprob = (len(_cots_aprob) / _total_cots * 100) if _total_cots > 0 else 0
+        _ticket_prom = _monto_total / _total_cots if _total_cots > 0 else 0
+
+        # ── KPIs Cotizaciones ──
+        _cc1, _cc2, _cc3, _cc4, _cc5, _cc6 = st.columns(6)
+        with _cc1:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">📄</div>
+                <div style="{_kpi_lbl}">Total Cotizaciones</div>
+                <div style="{_kpi_val}">{_total_cots}</div>
+            </div>""", unsafe_allow_html=True)
+        with _cc2:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">💵</div>
+                <div style="{_kpi_lbl}">Monto Total</div>
+                <div style="{_kpi_val}">{_fmt_usd(_monto_total)}</div>
+            </div>""", unsafe_allow_html=True)
+        with _cc3:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">✅</div>
+                <div style="{_kpi_lbl}">Aprobadas</div>
+                <div style="{_kpi_val} color:#10B981;">{len(_cots_aprob)} ({_fmt_usd(_monto_aprob)})</div>
+            </div>""", unsafe_allow_html=True)
+        with _cc4:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">⏳</div>
+                <div style="{_kpi_lbl}">Pendientes</div>
+                <div style="{_kpi_val} color:#3B82F6;">{len(_cots_normal)} ({_fmt_usd(_monto_normal)})</div>
+            </div>""", unsafe_allow_html=True)
+        with _cc5:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">🎯</div>
+                <div style="{_kpi_lbl}">Tasa Aprobación</div>
+                <div style="{_kpi_val} color:{"#10B981" if _tasa_aprob >= 40 else "#F59E0B"};">{_tasa_aprob:.1f}%</div>
+            </div>""", unsafe_allow_html=True)
+        with _cc6:
+            st.markdown(f"""<div style="{_kpi_style}">
+                <div style="font-size:1.4rem;margin-bottom:2px;">🧾</div>
+                <div style="{_kpi_lbl}">Ticket Promedio</div>
+                <div style="{_kpi_val}">{_fmt_usd(_ticket_prom)}</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
+        # ── Row: Donut por Estado + Evolución diaria ──
+        _col_donut, _col_evol = st.columns(2)
+
+        with _col_donut:
+            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Cotizaciones por Estado</div>", unsafe_allow_html=True)
+            _by_estado = _dc.groupby("Estado").agg(
+                Monto=("Total a Facturar", "sum"), Cantidad=("Cotización", "count")
+            ).reset_index()
+            fig_donut_cot = go.Figure(go.Pie(
+                labels=_by_estado["Estado"],
+                values=_by_estado["Monto"],
+                hole=0.55,
+                marker=dict(colors=[_COT_COLORS.get(s, "#94a3b8") for s in _by_estado["Estado"]]),
+                textinfo="label+percent",
+                textfont=dict(size=12),
+                hovertemplate="<b>%{label}</b><br>Monto: $%{value:,.0f}<br>%{percent}<extra></extra>",
+            ))
+            fig_donut_cot.update_layout(
+                height=350,
+                margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+                font=dict(family="Inter, sans-serif"),
+            )
+            st.plotly_chart(fig_donut_cot, use_container_width=True)
+
+        with _col_evol:
+            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Evolución Diaria de Cotizaciones</div>", unsafe_allow_html=True)
+            _dc_dia = _dc.dropna(subset=["Fecha Pedido"]).copy()
+            _dc_dia["Dia"] = _dc_dia["Fecha Pedido"].dt.date
+            _by_dia = _dc_dia.groupby("Dia").agg(
+                Monto=("Total a Facturar", "sum"), Cantidad=("Cotización", "count")
+            ).reset_index().sort_values("Dia")
+
+            fig_evol = make_subplots(specs=[[{"secondary_y": True}]])
+            fig_evol.add_trace(go.Bar(
+                x=_by_dia["Dia"], y=_by_dia["Monto"],
+                name="Monto ($)",
+                marker=dict(color="#3b82f6", cornerradius=4),
+                opacity=0.7,
+            ), secondary_y=False)
+            fig_evol.add_trace(go.Scatter(
+                x=_by_dia["Dia"], y=_by_dia["Cantidad"],
+                name="# Cotizaciones",
+                mode="lines+markers",
+                line=dict(color="#F59E0B", width=2.5),
+                marker=dict(size=6),
+            ), secondary_y=True)
+            fig_evol.update_layout(
+                height=350,
+                margin=dict(l=40, r=40, t=10, b=40),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Inter, sans-serif", size=11, color="#334155"),
+                legend=dict(orientation="h", y=-0.2, x=0.5, xanchor="center"),
+            )
+            fig_evol.update_yaxes(title_text="Monto ($)", secondary_y=False, gridcolor="#e2e8f0")
+            fig_evol.update_yaxes(title_text="Cantidad", secondary_y=True, gridcolor="rgba(0,0,0,0)")
+            st.plotly_chart(fig_evol, use_container_width=True)
+
+        # ── Top 10 Clientes por monto cotizado ──
+        st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Top 10 Clientes — Monto Cotizado</div>", unsafe_allow_html=True)
+        _top_cli = _dc.groupby("Nombre Cliente")["Total a Facturar"].sum().reset_index().sort_values("Total a Facturar", ascending=True).tail(10)
+        fig_top_cli = go.Figure(go.Bar(
+            y=_top_cli["Nombre Cliente"],
+            x=_top_cli["Total a Facturar"],
+            orientation="h",
+            marker=dict(
+                color=_top_cli["Total a Facturar"],
+                colorscale=[[0, "#bfdbfe"], [1, "#1d4ed8"]],
+                cornerradius=4,
+            ),
+            text=[_fmt_usd(v) for v in _top_cli["Total a Facturar"]],
+            textposition="outside",
+            textfont=dict(size=11),
+        ))
+        fig_top_cli.update_layout(
+            height=380,
+            margin=dict(l=10, r=80, t=10, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter, sans-serif", size=10, color="#334155"),
+            xaxis=dict(gridcolor="#e2e8f0", title=""),
+            yaxis=dict(title=""),
+        )
+        st.plotly_chart(fig_top_cli, use_container_width=True)
+
+        # ── Tabla detallada ──
+        with st.expander("📄 Ver tabla de cotizaciones detallada", expanded=False):
+            _dc_show = _dc[["Cotización", "Nombre Cliente", "Estado", "Total a Facturar",
+                            "Condición Pago", "Fecha Pedido", "Comentarios"]].copy()
+            _dc_show["Total a Facturar"] = _dc_show["Total a Facturar"].apply(lambda v: f"$ {v:,.2f}")
+            _dc_show = _dc_show.sort_values("Fecha Pedido", ascending=False)
+            st.dataframe(_dc_show, use_container_width=True, height=400)
+
+    st.stop()
+
+# ═══════════════════════════════════════════════════════════════════════
 # PÁGINA: DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════
 st.sidebar.title("Filtros")
@@ -1233,7 +1693,7 @@ MESES_ESP = {
 }
 
 st.markdown("---")
-st.subheader("Evolutivo Mensual Sell In — Venta USD y % Margen")
+st.subheader(f"Evolutivo Mensual{' Sell In' if canal_sel == ['RETAIL'] else ''} — Venta USD y % Margen")
 
 evo = (
     dff.groupby(["ANIO", "MES_NUM", "ANIO_MES"])
@@ -1402,7 +1862,7 @@ st.plotly_chart(fig_evo, use_container_width=True)
 # ═══════════════════════════════════════════════════════════════════════
 # 2. EVOLUTIVO TICKET PROMEDIO
 # ═══════════════════════════════════════════════════════════════════════
-st.subheader("Evolutivo Mensual Sell In — Ticket Promedio")
+st.subheader(f"Evolutivo Mensual{' Sell In' if canal_sel == ['RETAIL'] else ''} — Ticket Promedio")
 
 evo_ticket = (
     dff.groupby(["ANIO", "MES_NUM", "TIPO_DOC"])
@@ -1451,7 +1911,7 @@ st.plotly_chart(fig_ticket, use_container_width=True)
 # 3. TOP 10 Y BOTTOM 10 CLIENTES POR AÑO
 # ═══════════════════════════════════════════════════════════════════════
 st.markdown("---")
-st.subheader("Top 10 y Bottom 10 Clientes — Sell In")
+st.subheader(f"Top 10 y Bottom 10 Clientes{' — Sell In' if canal_sel == ['RETAIL'] else ''}")
 
 def ranking_clientes(data, year):
     data_year = data[data["ANIO"] == year]
@@ -1502,7 +1962,7 @@ for year in sorted(dff["ANIO"].unique()):
 # 4. PARTICIPACIÓN EN VENTAS — Categoría Línea y Línea
 # ═══════════════════════════════════════════════════════════════════════
 st.markdown("---")
-st.subheader("Participación en Ventas — Sell In")
+st.subheader(f"Participación en Ventas{' — Sell In' if canal_sel == ['RETAIL'] else ''}")
 
 col_cat_pie, col_lin_bar = st.columns(2)
 
@@ -1573,7 +2033,7 @@ with col_lin_bar:
 # 5. EVOLUTIVO DE STOCK — Valorización mensual
 # ═══════════════════════════════════════════════════════════════════════
 st.markdown("---")
-st.subheader("Evolutivo de Stock Sell In — Valorización USD")
+st.subheader(f"Evolutivo de Stock{' Sell In' if canal_sel == ['RETAIL'] else ''} — Valorización USD")
 
 # Filtrar stock por canal (coincidencia parcial en BODEGA NOMBRE)
 _stock = df_stock.copy()
@@ -1772,7 +2232,7 @@ if canal_sel == ["RETAIL"]:
 # 6. ANÁLISIS DE PUNTOS CLAVE — Insights de Negocio
 # ═══════════════════════════════════════════════════════════════════════
 st.markdown("---")
-st.subheader("Análisis de Puntos Clave — Sell In")
+st.subheader(f"Análisis de Puntos Clave{' — Sell In' if canal_sel == ['RETAIL'] else ''}")
 
 # ── Cálculos base ────────────────────────────────────────────────────
 _vta25 = dff_2025["VENTA USD"].sum()
