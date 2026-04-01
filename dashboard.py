@@ -2453,11 +2453,13 @@ if canal_sel == ["INTEGRADOR"]:
         _marca = r.get("MARCA", "—") or "—"
         _proyecto = r.get("PROYECTO", "—") or "—"
         _cliente = r.get("CLIENTE", "—") or "—"
+        _vendedor = r.get("VENDEDOR", "—") or "—"
         _mes_cierre = r.get("MES ESTIMADO DE CIERRE", "—") or "—"
         _tbl_rows_html += f"""
         <tr style="border-bottom:1px solid #f1f5f9;">
             <td style="padding:10px 12px;font-size:.78rem;color:#0f172a;font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{_cliente}">{_cliente}</td>
             <td style="padding:10px 12px;font-size:.78rem;color:#334155;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{_proyecto}">{_proyecto}</td>
+            <td style="padding:10px 12px;font-size:.75rem;color:#64748b;">{_vendedor}</td>
             <td style="padding:10px 8px;text-align:center;">
                 <span style="{_st_style}padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:600;letter-spacing:.5px;">{_st_label}</span>
             </td>
@@ -2473,6 +2475,7 @@ if canal_sel == ["INTEGRADOR"]:
                 <tr style="background:linear-gradient(135deg,#0f172a,#1e293b);">
                     <th style="padding:12px 12px;text-align:left;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Cliente</th>
                     <th style="padding:12px 12px;text-align:left;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Proyecto</th>
+                    <th style="padding:12px 12px;text-align:left;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Vendedor</th>
                     <th style="padding:12px 8px;text-align:center;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Status</th>
                     <th style="padding:12px 12px;text-align:right;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Monto (USD)</th>
                     <th style="padding:12px 12px;text-align:center;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Marca</th>
@@ -2482,7 +2485,7 @@ if canal_sel == ["INTEGRADOR"]:
             <tbody>{_tbl_rows_html}</tbody>
             <tfoot>
                 <tr style="background:#f8fafc;border-top:2px solid #e2e8f0;">
-                    <td colspan="3" style="padding:12px;font-size:.78rem;font-weight:700;color:#0f172a;">TOTAL PIPELINE ACTIVO</td>
+                    <td colspan="4" style="padding:12px;font-size:.78rem;font-weight:700;color:#0f172a;">TOTAL PIPELINE ACTIVO</td>
                     <td style="padding:12px;font-size:.9rem;font-weight:800;color:#0f172a;text-align:right;">{_pip_fmt(_total_pipe)}</td>
                     <td colspan="2" style="padding:12px;font-size:.75rem;color:#64748b;text-align:center;">{_n_activos} proyectos</td>
                 </tr>
