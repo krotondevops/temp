@@ -1490,58 +1490,53 @@ fig_ticket.update_xaxes(showgrid=False)
 st.plotly_chart(fig_ticket, use_container_width=True)
 
 # ═══════════════════════════════════════════════════════════════════════
-# 2b. EVOLUTIVO TICKET PROMEDIO POR VENDEDOR
+# 2b. EVOLUTIVO TICKET PROMEDIO POR VENDEDOR (solo INTEGRADOR)
 # ═══════════════════════════════════════════════════════════════════════
-st.subheader(f"Evolutivo Mensual{' Sell In' if canal_sel == ['RETAIL'] else ''} — Ticket Promedio por Vendedor")
+if canal_sel == ["INTEGRADOR"]:
+    st.subheader("Evolutivo Mensual — Ticket Promedio por Vendedor")
 
-evo_ticket_vend = (
-    dff.groupby(["ANIO", "MES_NUM", "VENDEDOR_NUEVO"])
-    .agg(VENTA=("VENTA USD", "sum"))
-    .reset_index()
-)
-evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENTA"] > 0]
-_vendedores_canal = {
-    "MINORISTA": ["ALDO PATRICIO TICONA", "MARIELA DIAZ", "KANDY TACURI",
-                   "MARY ELENA NABIO", "JUAN C. ORTIZ", "FANY FALERO",
-                   "MELANIA SILVERIO", "LESLIE VASQUEZ", "AMY SALAS"],
-    "INTEGRADOR": ["ALESSANDRA MERE", "FLOR MELGAREJO", "LUCIA QUISPE"],
-}
-if canal_sel and len(canal_sel) == 1 and canal_sel[0] in _vendedores_canal:
-    evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"].isin(_vendedores_canal[canal_sel[0]])]
-evo_ticket_vend["MES_LABEL"] = evo_ticket_vend.apply(
-    lambda r: f"{MESES_ESP[int(r['MES_NUM'])]} {int(r['ANIO'])}", axis=1
-)
-evo_ticket_vend = evo_ticket_vend.sort_values(["ANIO", "MES_NUM"])
-
-_vend_colors = ["#0891B2", "#8B5CF6", "#E11D48", "#F59E0B", "#10B981", "#6366F1", "#EC4899", "#14B8A6"]
-fig_ticket_vend = go.Figure()
-for i, vendedor in enumerate(evo_ticket_vend["VENDEDOR_NUEVO"].unique()):
-    _vdf = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"] == vendedor]
-    _color = _vend_colors[i % len(_vend_colors)]
-    fig_ticket_vend.add_trace(
-        go.Scatter(
-            x=_vdf["MES_LABEL"],
-            y=_vdf["VENTA"],
-            mode="lines+markers+text",
-            line=dict(color=_color, width=3, shape="spline", smoothing=0.8),
-            marker=dict(size=8, color=_color),
-            text=_vdf["VENTA"].apply(lambda v: f"${v:,.0f}"),
-            textposition="top center",
-            textfont=dict(size=11, color=_color),
-            cliponaxis=False,
-            name=vendedor,
-        )
+    evo_ticket_vend = (
+        dff.groupby(["ANIO", "MES_NUM", "VENDEDOR_NUEVO"])
+        .agg(VENTA=("VENTA USD", "sum"))
+        .reset_index()
     )
+    evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENTA"] > 0]
+    _vendedores_integrador = ["ALESSANDRA MERE", "FLOR MELGAREJO", "LUCIA QUISPE"]
+    evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"].isin(_vendedores_integrador)]
+    evo_ticket_vend["MES_LABEL"] = evo_ticket_vend.apply(
+        lambda r: f"{MESES_ESP[int(r['MES_NUM'])]} {int(r['ANIO'])}", axis=1
+    )
+    evo_ticket_vend = evo_ticket_vend.sort_values(["ANIO", "MES_NUM"])
 
-fig_ticket_vend.update_layout(
-    height=500,
-    margin=dict(t=50, b=40),
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    plot_bgcolor="white",
-)
-fig_ticket_vend.update_yaxes(showticklabels=False, showgrid=False, title="")
-fig_ticket_vend.update_xaxes(showgrid=False)
-st.plotly_chart(fig_ticket_vend, use_container_width=True)
+    _vend_colors = ["#0891B2", "#8B5CF6", "#E11D48"]
+    fig_ticket_vend = go.Figure()
+    for i, vendedor in enumerate(evo_ticket_vend["VENDEDOR_NUEVO"].unique()):
+        _vdf = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"] == vendedor]
+        _color = _vend_colors[i % len(_vend_colors)]
+        fig_ticket_vend.add_trace(
+            go.Scatter(
+                x=_vdf["MES_LABEL"],
+                y=_vdf["VENTA"],
+                mode="lines+markers+text",
+                line=dict(color=_color, width=3, shape="spline", smoothing=0.8),
+                marker=dict(size=8, color=_color),
+                text=_vdf["VENTA"].apply(lambda v: f"${v:,.0f}"),
+                textposition="top center",
+                textfont=dict(size=11, color=_color),
+                cliponaxis=False,
+                name=vendedor,
+            )
+        )
+
+    fig_ticket_vend.update_layout(
+        height=500,
+        margin=dict(t=50, b=40),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        plot_bgcolor="white",
+    )
+    fig_ticket_vend.update_yaxes(showticklabels=False, showgrid=False, title="")
+    fig_ticket_vend.update_xaxes(showgrid=False)
+    st.plotly_chart(fig_ticket_vend, use_container_width=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════
