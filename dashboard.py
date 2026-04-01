@@ -1694,32 +1694,47 @@ with col_lin_bar:
         f"<b>{r['LINEA']}</b><br>Venta: ${r['VENTA']:,.0f}<br>Partic: {r['% Partic.']:.1%}"
         for _, r in part_lin.iterrows()
     ]
-    _lin_text = [
-        f"{r['% Partic.']:.1%}  |  Mg: {r['MARGEN_PCT']:.1f}%"
-        for _, r in part_lin.iterrows()
-    ]
+    _lin_text_inside = [f"{r['% Partic.']:.1%}" for _, r in part_lin.iterrows()]
+    _lin_text_mg = [f"Mg: {r['MARGEN_PCT']:.1f}%" for _, r in part_lin.iterrows()]
 
-    fig_part_lin = go.Figure(
+    fig_part_lin = go.Figure()
+    fig_part_lin.add_trace(
         go.Bar(
             y=part_lin["LINEA"],
             x=part_lin["% Partic."],
             orientation="h",
             marker_color="#2563EB",
-            text=_lin_text,
+            text=_lin_text_inside,
             textposition="inside",
-            textfont=dict(size=12, color="white"),
+            textfont=dict(size=13, color="white"),
             insidetextanchor="end",
             hovertemplate="%{customdata}<extra></extra>",
             customdata=_lin_hover,
+            showlegend=False,
+        )
+    )
+    fig_part_lin.add_trace(
+        go.Bar(
+            y=part_lin["LINEA"],
+            x=[0] * len(part_lin),
+            orientation="h",
+            marker_color="rgba(0,0,0,0)",
+            text=_lin_text_mg,
+            textposition="outside",
+            textfont=dict(size=11, color="#475569"),
+            hoverinfo="skip",
+            showlegend=False,
+            base=part_lin["% Partic."].values,
         )
     )
     fig_part_lin.update_layout(
         title=dict(text="Top 10 Líneas", font=dict(size=14)),
         height=440,
-        margin=dict(t=40, b=20, l=20, r=20),
-        xaxis=dict(showticklabels=False, showgrid=False),
+        margin=dict(t=40, b=20, l=20, r=80),
+        xaxis=dict(showticklabels=False, showgrid=False, range=[0, part_lin["% Partic."].max() * 1.35]),
         yaxis=dict(tickfont=dict(size=12)),
         plot_bgcolor="white",
+        barmode="overlay",
     )
     fig_part_lin.update_yaxes(showgrid=False)
     st.plotly_chart(fig_part_lin, use_container_width=True)
