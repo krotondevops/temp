@@ -1495,24 +1495,45 @@ st.plotly_chart(fig_ticket, use_container_width=True)
 if canal_sel == ["INTEGRADOR"]:
     st.subheader("Evolutivo Mensual — Ticket Promedio por Vendedor")
 
-    evo_ticket_vend = (
-        dff.groupby(["ANIO", "MES_NUM", "VENDEDOR_NUEVO"])
+    # Detalle por vendedor + mes + cliente para hover
+    _vendedores_integrador = ["ALESSANDRA MERE", "FLOR MELGAREJO", "LUCIA QUISPE"]
+    _dff_integ = dff[dff["VENDEDOR_NUEVO"].isin(_vendedores_integrador)]
+    evo_ticket_det = (
+        _dff_integ.groupby(["ANIO", "MES_NUM", "VENDEDOR_NUEVO", "CLIENTE"])
         .agg(VENTA=("VENTA USD", "sum"))
         .reset_index()
     )
-    evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENTA"] > 0]
-    _vendedores_integrador = ["ALESSANDRA MERE", "FLOR MELGAREJO", "LUCIA QUISPE"]
-    evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"].isin(_vendedores_integrador)]
+    evo_ticket_det = evo_ticket_det[evo_ticket_det["VENTA"] > 0]
+
+    # Totales por vendedor/mes
+    evo_ticket_vend = (
+        evo_ticket_det.groupby(["ANIO", "MES_NUM", "VENDEDOR_NUEVO"])
+        .agg(VENTA=("VENTA", "sum"))
+        .reset_index()
+    )
     evo_ticket_vend["MES_LABEL"] = evo_ticket_vend.apply(
         lambda r: f"{MESES_ESP[int(r['MES_NUM'])]} {int(r['ANIO'])}", axis=1
     )
     evo_ticket_vend = evo_ticket_vend.sort_values(["ANIO", "MES_NUM"])
 
+    # Construir hover con lista de clientes
+    _hover_map = {}
+    for (anio, mes, vend), grp in evo_ticket_det.groupby(["ANIO", "MES_NUM", "VENDEDOR_NUEVO"]):
+        _clientes = grp.sort_values("VENTA", ascending=False)
+        _lines = [f"<b>{vend}</b> — {MESES_ESP[int(mes)]} {int(anio)}",
+                  f"<b>Total: ${grp['VENTA'].sum():,.0f}</b>", ""]
+        for _, cr in _clientes.iterrows():
+            _lines.append(f"• {cr['CLIENTE']}: ${cr['VENTA']:,.0f}")
+        _hover_map[(anio, mes, vend)] = "<br>".join(_lines)
+
     _vend_colors = ["#0891B2", "#8B5CF6", "#E11D48"]
     fig_ticket_vend = go.Figure()
     for i, vendedor in enumerate(evo_ticket_vend["VENDEDOR_NUEVO"].unique()):
-        _vdf = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"] == vendedor]
+        _vdf = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"] == vendedor].copy()
         _color = _vend_colors[i % len(_vend_colors)]
+        _vdf["HOVER"] = _vdf.apply(
+            lambda r: _hover_map.get((r["ANIO"], r["MES_NUM"], r["VENDEDOR_NUEVO"]), ""), axis=1
+        )
         fig_ticket_vend.add_trace(
             go.Scatter(
                 x=_vdf["MES_LABEL"],
@@ -1525,6 +1546,8 @@ if canal_sel == ["INTEGRADOR"]:
                 textfont=dict(size=11, color=_color),
                 cliponaxis=False,
                 name=vendedor,
+                hovertemplate="%{customdata}<extra></extra>",
+                customdata=_vdf["HOVER"].values,
             )
         )
 
