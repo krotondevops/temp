@@ -116,6 +116,9 @@ def load_pipeline_proyectos():
     for col in ["MES INICIO", "MES ESTIMADO DE CIERRE", "MES DE FACTURACION"]:
         if col in dp.columns:
             dp[col] = dp[col].astype(str).str.strip().str.title().replace("Nan", pd.NA)
+    # Fallback: si no hay MES ESTIMADO DE CIERRE, usar MES INICIO
+    if "MES ESTIMADO DE CIERRE" in dp.columns and "MES INICIO" in dp.columns:
+        dp["MES ESTIMADO DE CIERRE"] = dp["MES ESTIMADO DE CIERRE"].fillna(dp["MES INICIO"])
     return dp
 
 
@@ -1553,6 +1556,9 @@ with col_cat_pie:
         .reset_index()
         .sort_values("VENTA USD", ascending=False)
     )
+    _cat_total = part_cat["VENTA USD"].sum()
+    _cat_pcts = (part_cat["VENTA USD"] / _cat_total * 100) if _cat_total > 0 else part_cat["VENTA USD"] * 0
+    _cat_pull = [0.06 if p < 5 else 0 for p in _cat_pcts]
     fig_part_cat = go.Figure(
         go.Pie(
             labels=part_cat["CATEGORIA_LINEA"],
@@ -1560,16 +1566,19 @@ with col_cat_pie:
             hole=0.45,
             textinfo="label+percent",
             textposition="outside",
-            textfont=dict(size=14),
+            textfont=dict(size=13),
+            pull=_cat_pull,
             marker=dict(colors=["#2563EB", "#10B981", "#F59E0B", "#EF4444",
                                 "#8B5CF6", "#EC4899", "#06B6D4", "#6B7280"]),
+            hovertemplate="<b>%{label}</b><br>Venta: $%{value:,.0f}<br>%{percent}<extra></extra>",
         )
     )
     fig_part_cat.update_layout(
         title=dict(text="Por Categoría Línea", font=dict(size=14)),
-        height=400,
-        margin=dict(t=40, b=20, l=20, r=20),
-        showlegend=False,
+        height=440,
+        margin=dict(t=40, b=40, l=40, r=40),
+        showlegend=True,
+        legend=dict(orientation="h", y=-0.05, x=0.5, xanchor="center", font=dict(size=11)),
     )
     st.plotly_chart(fig_part_cat, use_container_width=True)
 
@@ -1599,7 +1608,7 @@ with col_lin_bar:
     )
     fig_part_lin.update_layout(
         title=dict(text="Top 10 Líneas", font=dict(size=14)),
-        height=400,
+        height=440,
         margin=dict(t=40, b=20, l=20, r=20),
         xaxis=dict(showticklabels=False, showgrid=False),
         yaxis=dict(tickfont=dict(size=12)),
@@ -2585,7 +2594,9 @@ if canal_sel == ["INTEGRADOR"]:
         textfont=dict(size=11, color="#92400e", family="Inter, sans-serif"),
     ))
     fig_mes.update_layout(
-        **_EXEC_LAYOUT,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, sans-serif", size=12, color="#334155"),
         barmode="stack",
         height=420,
         margin=dict(l=40, r=20, t=20, b=60),
