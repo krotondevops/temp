@@ -1648,7 +1648,7 @@ with col_cat_pie:
     _cat_pcts = (part_cat["VENTA"] / _cat_total * 100) if _cat_total > 0 else part_cat["VENTA"] * 0
     _cat_pull = [0.06 if p < 5 else 0 for p in _cat_pcts]
     _cat_hover = [
-        f"<b>{r['CATEGORIA_LINEA']}</b><br>Venta: ${r['VENTA']:,.0f}<br>Margen: ${r['MARGEN']:,.0f} ({r['MARGEN_PCT']:.1f}%)"
+        f"<b>{r['CATEGORIA_LINEA']}</b><br>Venta: ${r['VENTA']:,.0f}<br>Margen: {r['MARGEN_PCT']:.1f}%"
         for _, r in part_cat.iterrows()
     ]
     fig_part_cat = go.Figure(
@@ -1691,7 +1691,11 @@ with col_lin_bar:
     part_lin["% Partic."] = part_lin["VENTA"] / total_vta_lin if total_vta_lin != 0 else 0
     part_lin["MARGEN_PCT"] = (part_lin["MARGEN"] / part_lin["VENTA"] * 100).fillna(0)
     _lin_hover = [
-        f"<b>{r['LINEA']}</b><br>Venta: ${r['VENTA']:,.0f}<br>Margen: ${r['MARGEN']:,.0f} ({r['MARGEN_PCT']:.1f}%)<br>Partic: {r['% Partic.']:.1%}"
+        f"<b>{r['LINEA']}</b><br>Venta: ${r['VENTA']:,.0f}<br>Partic: {r['% Partic.']:.1%}"
+        for _, r in part_lin.iterrows()
+    ]
+    _lin_text = [
+        f"{r['% Partic.']:.1%}  |  Mg: {r['MARGEN_PCT']:.1f}%"
         for _, r in part_lin.iterrows()
     ]
 
@@ -1701,9 +1705,9 @@ with col_lin_bar:
             x=part_lin["% Partic."],
             orientation="h",
             marker_color="#2563EB",
-            text=part_lin["% Partic."].apply(lambda v: f"{v:.1%}"),
+            text=_lin_text,
             textposition="inside",
-            textfont=dict(size=13, color="white"),
+            textfont=dict(size=12, color="white"),
             insidetextanchor="end",
             hovertemplate="%{customdata}<extra></extra>",
             customdata=_lin_hover,
