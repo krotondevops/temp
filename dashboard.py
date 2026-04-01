@@ -2512,13 +2512,15 @@ if canal_sel == ["INTEGRADOR"]:
         _by_status = _by_status.sort_values("_o")
         _st_colors = {"GANADO": "#166534", "NEGOCIACIÓN": "#D97706", "COTIZACIÓN": "#2563EB", "PERDIDO": "#DC2626"}
 
+        _funnel_pos = ["outside" if s == "GANADO" else "inside" for s in _by_status["STATUS"]]
+        _funnel_clr = ["#334155" if s == "GANADO" else "#fff" for s in _by_status["STATUS"]]
         fig_funnel = go.Figure(go.Funnel(
             y=_by_status["STATUS"],
             x=_by_status["MONTO"],
             textinfo="value+percent initial",
             texttemplate="$%{value:,.0f}  (%{percentInitial:.1%})",
-            textposition="outside",
-            textfont=dict(size=12, color="#334155"),
+            textposition=_funnel_pos,
+            textfont=dict(size=12, color=_funnel_clr),
             marker=dict(color=[_st_colors.get(s, "#94a3b8") for s in _by_status["STATUS"]]),
             connector=dict(line=dict(color="#e2e8f0", width=1)),
         ))
