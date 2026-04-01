@@ -1500,6 +1500,14 @@ evo_ticket_vend = (
     .reset_index()
 )
 evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENTA"] > 0]
+_vendedores_canal = {
+    "MINORISTA": ["ALDO PATRICIO TICONA", "MARIELA DIAZ", "KANDY TACURI",
+                   "MARY ELENA NABIO", "JUAN C. ORTIZ", "FANY FALERO",
+                   "MELANIA SILVERIO", "LESLIE VASQUEZ", "AMY SALAS"],
+    "INTEGRADOR": ["ALESSANDRA MERE", "FLOR MELGAREJO", "LUCIA QUISPE"],
+}
+if canal_sel and len(canal_sel) == 1 and canal_sel[0] in _vendedores_canal:
+    evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"].isin(_vendedores_canal[canal_sel[0]])]
 evo_ticket_vend["MES_LABEL"] = evo_ticket_vend.apply(
     lambda r: f"{MESES_ESP[int(r['MES_NUM'])]} {int(r['ANIO'])}", axis=1
 )
