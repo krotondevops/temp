@@ -1976,7 +1976,8 @@ _cat_agg_sig = _cat_agg[_cat_agg["V"] >= _cat_total_v * 0.01] if _cat_total_v > 
 _cat_agg_sig = _cat_agg_sig.sort_values("pct", ascending=False)
 _cat_agg = _cat_agg.sort_values("pct", ascending=False)
 _best_cat = _cat_agg_sig.iloc[0] if not _cat_agg_sig.empty else None
-_worst_cat = _cat_agg.iloc[-1] if not _cat_agg.empty else None
+_worst_cat_df = _cat_agg[~_cat_agg["CATEGORIA_LINEA"].isin(["INALAMBRICOS"])] if canal_sel == ["INTEGRADOR"] else _cat_agg
+_worst_cat = _worst_cat_df.iloc[-1] if not _worst_cat_df.empty else None
 
 # Canal más fuerte
 _canal_agg = (
