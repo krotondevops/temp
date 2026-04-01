@@ -2517,7 +2517,8 @@ if canal_sel == ["INTEGRADOR"]:
             x=_by_status["MONTO"],
             textinfo="value+percent initial",
             texttemplate="$%{value:,.0f}  (%{percentInitial:.1%})",
-            textfont=dict(size=12, color="#fff"),
+            textposition="outside",
+            textfont=dict(size=12, color="#334155"),
             marker=dict(color=[_st_colors.get(s, "#94a3b8") for s in _by_status["STATUS"]]),
             connector=dict(line=dict(color="#e2e8f0", width=1)),
         ))
