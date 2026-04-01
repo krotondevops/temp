@@ -112,6 +112,10 @@ def load_pipeline_proyectos():
         "NEGOCIACIÓN": "NEGOCIACIÓN", "NEGOCIACI\u00d3N": "NEGOCIACIÓN",
     }
     dp["STATUS"] = dp["STATUS"].replace(status_map)
+    # Normalize month columns to title case for MESES_ORDEN compatibility
+    for col in ["MES INICIO", "MES ESTIMADO DE CIERRE", "MES DE FACTURACION"]:
+        if col in dp.columns:
+            dp[col] = dp[col].astype(str).str.strip().str.title().replace("Nan", pd.NA)
     return dp
 
 
@@ -150,7 +154,7 @@ st.sidebar.markdown(
 
 # ─── NAVEGACIÓN ──────────────────────────────────────────────────────
 st.sidebar.markdown("---")
-_page = st.sidebar.radio("Navegación", ["Dashboard", "Market Share", "Pipeline"], horizontal=True, key="nav_page")
+_page = st.sidebar.radio("Navegación", ["Dashboard", "Market Share"], horizontal=True, key="nav_page")
 st.sidebar.markdown("---")
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -930,430 +934,6 @@ if _page == "Market Share":
         """, unsafe_allow_html=True)
 
     st.stop()
-
-# ═══════════════════════════════════════════════════════════════════════
-# PÁGINA: PIPELINE (INTEGRADOR)
-# ═══════════════════════════════════════════════════════════════════════
-if _page == "Pipeline":
-    _STATUS_ORDER = ["GANADO", "NEGOCIACIÓN", "COTIZACIÓN", "PERDIDO"]
-    _STATUS_COLORS = {
-        "GANADO": "#10B981",
-        "NEGOCIACIÓN": "#F59E0B",
-        "COTIZACIÓN": "#3B82F6",
-        "PERDIDO": "#EF4444",
-    }
-    _COT_COLORS = {
-        "Aprobado": "#10B981",
-        "Normal": "#3B82F6",
-        "Perdido": "#EF4444",
-    }
-
-    # ── Header ──
-    st.markdown("""
-    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:14px;padding:28px 32px;margin-bottom:24px;">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-            <div style="background:rgba(59,130,246,.15);border-radius:10px;padding:10px 14px;">
-                <span style="font-size:1.8rem;">🏗️</span>
-            </div>
-            <div>
-                <h2 style="margin:0;color:#f1f5f9;font-weight:700;font-size:1.5rem;">Pipeline Comercial — Canal Integrador</h2>
-                <p style="margin:4px 0 0;color:#94a3b8;font-size:.85rem;">Seguimiento de proyectos y cotizaciones · Pipeline Comercial 2026</p>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── Tabs principales ──
-    _pip_tab_proy, _pip_tab_cot = st.tabs(["📋 Seguimiento de Proyectos", "📄 Seguimiento de Cotizaciones"])
-
-    # ──────────────────────────────────────────────────────────────────
-    # TAB 1: SEGUIMIENTO DE PROYECTOS
-    # ──────────────────────────────────────────────────────────────────
-    with _pip_tab_proy:
-        _dp = df_pipeline.copy()
-
-        # Excluir PERDIDO del pipeline activo para KPIs de valor
-        _dp_activo = _dp[_dp["STATUS"] != "PERDIDO"]
-        _dp_ganado = _dp[_dp["STATUS"] == "GANADO"]
-        _dp_negoc = _dp[_dp["STATUS"] == "NEGOCIACIÓN"]
-        _dp_cotiz = _dp[_dp["STATUS"] == "COTIZACIÓN"]
-        _dp_perdido = _dp[_dp["STATUS"] == "PERDIDO"]
-
-        _total_pipeline = _dp_activo["MONTO"].sum()
-        _total_ganado = _dp_ganado["MONTO"].sum()
-        _total_negoc = _dp_negoc["MONTO"].sum()
-        _total_cotiz = _dp_cotiz["MONTO"].sum()
-        _n_proyectos = len(_dp)
-        _n_ganados = len(_dp_ganado)
-        _tasa_cierre = (_n_ganados / _n_proyectos * 100) if _n_proyectos > 0 else 0
-
-        # ── KPIs ──
-        _kc1, _kc2, _kc3, _kc4, _kc5, _kc6 = st.columns(6)
-        _kpi_style = (
-            "background:#fff;border:1px solid #e2e8f0;border-radius:12px;"
-            "padding:16px 12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);"
-        )
-        _kpi_lbl = "font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em;"
-        _kpi_val = "font-size:1.35rem;font-weight:700;color:#0f172a;line-height:1.2;"
-
-        def _fmt_usd(v):
-            if abs(v) >= 1_000_000:
-                return f"$ {v/1_000_000:,.2f}M"
-            if abs(v) >= 1_000:
-                return f"$ {v/1_000:,.1f}K"
-            return f"$ {v:,.0f}"
-
-        with _kc1:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">💰</div>
-                <div style="{_kpi_lbl}">Pipeline Activo</div>
-                <div style="{_kpi_val}">{_fmt_usd(_total_pipeline)}</div>
-            </div>""", unsafe_allow_html=True)
-        with _kc2:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">✅</div>
-                <div style="{_kpi_lbl}">Ganados</div>
-                <div style="{_kpi_val} color:#10B981;">{_fmt_usd(_total_ganado)}</div>
-            </div>""", unsafe_allow_html=True)
-        with _kc3:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">🤝</div>
-                <div style="{_kpi_lbl}">En Negociación</div>
-                <div style="{_kpi_val} color:#F59E0B;">{_fmt_usd(_total_negoc)}</div>
-            </div>""", unsafe_allow_html=True)
-        with _kc4:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">📝</div>
-                <div style="{_kpi_lbl}">Cotizaciones</div>
-                <div style="{_kpi_val} color:#3B82F6;">{_fmt_usd(_total_cotiz)}</div>
-            </div>""", unsafe_allow_html=True)
-        with _kc5:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">📊</div>
-                <div style="{_kpi_lbl}">Total Proyectos</div>
-                <div style="{_kpi_val}">{_n_proyectos}</div>
-            </div>""", unsafe_allow_html=True)
-        with _kc6:
-            _tc_color = "#10B981" if _tasa_cierre >= 20 else "#F59E0B" if _tasa_cierre >= 10 else "#EF4444"
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">🎯</div>
-                <div style="{_kpi_lbl}">Tasa de Cierre</div>
-                <div style="{_kpi_val} color:{_tc_color};">{_tasa_cierre:.1f}%</div>
-            </div>""", unsafe_allow_html=True)
-
-        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-
-        # ── Row: Funnel + Monto por Status ──
-        _col_funnel, _col_marca = st.columns(2)
-
-        with _col_funnel:
-            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Embudo de Pipeline por Status</div>", unsafe_allow_html=True)
-            _by_status = _dp.groupby("STATUS").agg(
-                MONTO=("MONTO", "sum"), COUNT=("MONTO", "count")
-            ).reset_index()
-            # Reorder by funnel logic
-            _status_idx = {s: i for i, s in enumerate(_STATUS_ORDER)}
-            _by_status["_order"] = _by_status["STATUS"].map(_status_idx).fillna(99)
-            _by_status = _by_status.sort_values("_order")
-
-            fig_funnel = go.Figure(go.Funnel(
-                y=_by_status["STATUS"],
-                x=_by_status["MONTO"],
-                textinfo="value+percent initial",
-                texttemplate="$%{value:,.0f}<br>%{percentInitial:.1%}",
-                marker=dict(
-                    color=[_STATUS_COLORS.get(s, "#94a3b8") for s in _by_status["STATUS"]],
-                ),
-                connector=dict(line=dict(color="#e2e8f0", width=1)),
-            ))
-            fig_funnel.update_layout(
-                height=360,
-                margin=dict(l=10, r=10, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="Inter, sans-serif", size=12, color="#334155"),
-            )
-            st.plotly_chart(fig_funnel, use_container_width=True)
-
-        with _col_marca:
-            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Pipeline por Marca</div>", unsafe_allow_html=True)
-            _by_marca = _dp_activo.groupby("MARCA")["MONTO"].sum().reset_index().sort_values("MONTO", ascending=True)
-            _pal = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16", "#ef4444"]
-            fig_marca = go.Figure(go.Bar(
-                y=_by_marca["MARCA"],
-                x=_by_marca["MONTO"],
-                orientation="h",
-                marker=dict(
-                    color=_pal[:len(_by_marca)],
-                    cornerradius=4,
-                ),
-                text=[_fmt_usd(v) for v in _by_marca["MONTO"]],
-                textposition="outside",
-                textfont=dict(size=11, color="#334155"),
-            ))
-            fig_marca.update_layout(
-                height=360,
-                margin=dict(l=10, r=80, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="Inter, sans-serif", size=12, color="#334155"),
-                xaxis=dict(gridcolor="#e2e8f0", title=""),
-                yaxis=dict(title=""),
-            )
-            st.plotly_chart(fig_marca, use_container_width=True)
-
-        # ── Row: Por Vendedor + Timeline Mensual ──
-        _col_vend, _col_time = st.columns(2)
-
-        with _col_vend:
-            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Pipeline por Vendedor</div>", unsafe_allow_html=True)
-            _by_vend = _dp_activo.groupby("VENDEDOR").agg(
-                MONTO=("MONTO", "sum"), COUNT=("MONTO", "count")
-            ).reset_index().sort_values("MONTO", ascending=True)
-
-            fig_vend = go.Figure()
-            fig_vend.add_trace(go.Bar(
-                y=_by_vend["VENDEDOR"],
-                x=_by_vend["MONTO"],
-                orientation="h",
-                marker=dict(color="#3b82f6", cornerradius=4),
-                text=[f"{_fmt_usd(m)} ({int(c)} proy.)" for m, c in zip(_by_vend["MONTO"], _by_vend["COUNT"])],
-                textposition="outside",
-                textfont=dict(size=11),
-            ))
-            fig_vend.update_layout(
-                height=300,
-                margin=dict(l=10, r=100, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="Inter, sans-serif", size=12, color="#334155"),
-                xaxis=dict(gridcolor="#e2e8f0", title=""),
-                yaxis=dict(title=""),
-            )
-            st.plotly_chart(fig_vend, use_container_width=True)
-
-        with _col_time:
-            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Pipeline por Mes Estimado de Cierre</div>", unsafe_allow_html=True)
-            _mes_col = "MES ESTIMADO DE CIERRE"
-            if _mes_col in _dp_activo.columns:
-                _by_mes = _dp_activo.groupby(_mes_col)["MONTO"].sum().reset_index()
-                _by_mes["_order"] = _by_mes[_mes_col].map(MESES_ORDEN).fillna(99)
-                _by_mes = _by_mes.sort_values("_order")
-
-                fig_mes = go.Figure(go.Bar(
-                    x=_by_mes[_mes_col],
-                    y=_by_mes["MONTO"],
-                    marker=dict(
-                        color=_by_mes["MONTO"],
-                        colorscale=[[0, "#bfdbfe"], [1, "#1d4ed8"]],
-                        cornerradius=6,
-                    ),
-                    text=[_fmt_usd(v) for v in _by_mes["MONTO"]],
-                    textposition="outside",
-                    textfont=dict(size=11, color="#334155"),
-                ))
-                fig_mes.update_layout(
-                    height=300,
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    font=dict(family="Inter, sans-serif", size=12, color="#334155"),
-                    xaxis=dict(type="category", title=""),
-                    yaxis=dict(gridcolor="#e2e8f0", title=""),
-                )
-                st.plotly_chart(fig_mes, use_container_width=True)
-
-        # ── Detalle por Status (stacked) ──
-        st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Detalle por Mes y Status</div>", unsafe_allow_html=True)
-        _mes_col_cierre = "MES ESTIMADO DE CIERRE"
-        if _mes_col_cierre in _dp.columns:
-            _by_mes_st = _dp[_dp["STATUS"] != "PERDIDO"].groupby([_mes_col_cierre, "STATUS"])["MONTO"].sum().reset_index()
-            _by_mes_st["_order"] = _by_mes_st[_mes_col_cierre].map(MESES_ORDEN).fillna(99)
-            _by_mes_st = _by_mes_st.sort_values("_order")
-
-            fig_stacked = go.Figure()
-            for s in ["GANADO", "NEGOCIACIÓN", "COTIZACIÓN"]:
-                _sd = _by_mes_st[_by_mes_st["STATUS"] == s]
-                fig_stacked.add_trace(go.Bar(
-                    x=_sd[_mes_col_cierre],
-                    y=_sd["MONTO"],
-                    name=s,
-                    marker=dict(color=_STATUS_COLORS.get(s, "#94a3b8"), cornerradius=4),
-                ))
-            fig_stacked.update_layout(
-                barmode="stack",
-                height=350,
-                margin=dict(l=40, r=20, t=10, b=40),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="Inter, sans-serif", size=12, color="#334155"),
-                xaxis=dict(type="category", title=""),
-                yaxis=dict(gridcolor="#e2e8f0", title="Monto (USD)"),
-                legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center"),
-            )
-            st.plotly_chart(fig_stacked, use_container_width=True)
-
-        # ── Tabla detallada de proyectos ──
-        with st.expander("📋 Ver tabla de proyectos detallada", expanded=False):
-            _show_cols = ["CLIENTE", "PROYECTO", "VENDEDOR", "STATUS", "MONTO", "MARCA",
-                          "PRODUCTOS", "COND. PAGO", "MES INICIO", "MES ESTIMADO DE CIERRE",
-                          "MES DE FACTURACION", "CONTACTO", "COMENTARIOS"]
-            _existing = [c for c in _show_cols if c in _dp.columns]
-            _dp_show = _dp[_existing].copy()
-            _dp_show["MONTO"] = _dp_show["MONTO"].apply(lambda v: f"$ {v:,.2f}" if v > 0 else "-")
-            st.dataframe(_dp_show, use_container_width=True, height=400)
-
-    # ──────────────────────────────────────────────────────────────────
-    # TAB 2: SEGUIMIENTO DE COTIZACIONES
-    # ──────────────────────────────────────────────────────────────────
-    with _pip_tab_cot:
-        _dc = df_cotizaciones.copy()
-
-        _total_cots = len(_dc)
-        _cots_aprob = _dc[_dc["Estado"] == "Aprobado"]
-        _cots_normal = _dc[_dc["Estado"] == "Normal"]
-        _cots_perdido = _dc[_dc["Estado"] == "Perdido"]
-        _monto_total = _dc["Total a Facturar"].sum()
-        _monto_aprob = _cots_aprob["Total a Facturar"].sum()
-        _monto_normal = _cots_normal["Total a Facturar"].sum()
-        _tasa_aprob = (len(_cots_aprob) / _total_cots * 100) if _total_cots > 0 else 0
-        _ticket_prom = _monto_total / _total_cots if _total_cots > 0 else 0
-
-        # ── KPIs Cotizaciones ──
-        _cc1, _cc2, _cc3, _cc4, _cc5, _cc6 = st.columns(6)
-        with _cc1:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">📄</div>
-                <div style="{_kpi_lbl}">Total Cotizaciones</div>
-                <div style="{_kpi_val}">{_total_cots}</div>
-            </div>""", unsafe_allow_html=True)
-        with _cc2:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">💵</div>
-                <div style="{_kpi_lbl}">Monto Total</div>
-                <div style="{_kpi_val}">{_fmt_usd(_monto_total)}</div>
-            </div>""", unsafe_allow_html=True)
-        with _cc3:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">✅</div>
-                <div style="{_kpi_lbl}">Aprobadas</div>
-                <div style="{_kpi_val} color:#10B981;">{len(_cots_aprob)} ({_fmt_usd(_monto_aprob)})</div>
-            </div>""", unsafe_allow_html=True)
-        with _cc4:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">⏳</div>
-                <div style="{_kpi_lbl}">Pendientes</div>
-                <div style="{_kpi_val} color:#3B82F6;">{len(_cots_normal)} ({_fmt_usd(_monto_normal)})</div>
-            </div>""", unsafe_allow_html=True)
-        with _cc5:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">🎯</div>
-                <div style="{_kpi_lbl}">Tasa Aprobación</div>
-                <div style="{_kpi_val} color:{"#10B981" if _tasa_aprob >= 40 else "#F59E0B"};">{_tasa_aprob:.1f}%</div>
-            </div>""", unsafe_allow_html=True)
-        with _cc6:
-            st.markdown(f"""<div style="{_kpi_style}">
-                <div style="font-size:1.4rem;margin-bottom:2px;">🧾</div>
-                <div style="{_kpi_lbl}">Ticket Promedio</div>
-                <div style="{_kpi_val}">{_fmt_usd(_ticket_prom)}</div>
-            </div>""", unsafe_allow_html=True)
-
-        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-
-        # ── Row: Donut por Estado + Evolución diaria ──
-        _col_donut, _col_evol = st.columns(2)
-
-        with _col_donut:
-            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Cotizaciones por Estado</div>", unsafe_allow_html=True)
-            _by_estado = _dc.groupby("Estado").agg(
-                Monto=("Total a Facturar", "sum"), Cantidad=("Cotización", "count")
-            ).reset_index()
-            fig_donut_cot = go.Figure(go.Pie(
-                labels=_by_estado["Estado"],
-                values=_by_estado["Monto"],
-                hole=0.55,
-                marker=dict(colors=[_COT_COLORS.get(s, "#94a3b8") for s in _by_estado["Estado"]]),
-                textinfo="label+percent",
-                textfont=dict(size=12),
-                hovertemplate="<b>%{label}</b><br>Monto: $%{value:,.0f}<br>%{percent}<extra></extra>",
-            ))
-            fig_donut_cot.update_layout(
-                height=350,
-                margin=dict(l=10, r=10, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                showlegend=False,
-                font=dict(family="Inter, sans-serif"),
-            )
-            st.plotly_chart(fig_donut_cot, use_container_width=True)
-
-        with _col_evol:
-            st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Evolución Diaria de Cotizaciones</div>", unsafe_allow_html=True)
-            _dc_dia = _dc.dropna(subset=["Fecha Pedido"]).copy()
-            _dc_dia["Dia"] = _dc_dia["Fecha Pedido"].dt.date
-            _by_dia = _dc_dia.groupby("Dia").agg(
-                Monto=("Total a Facturar", "sum"), Cantidad=("Cotización", "count")
-            ).reset_index().sort_values("Dia")
-
-            fig_evol = make_subplots(specs=[[{"secondary_y": True}]])
-            fig_evol.add_trace(go.Bar(
-                x=_by_dia["Dia"], y=_by_dia["Monto"],
-                name="Monto ($)",
-                marker=dict(color="#3b82f6", cornerradius=4),
-                opacity=0.7,
-            ), secondary_y=False)
-            fig_evol.add_trace(go.Scatter(
-                x=_by_dia["Dia"], y=_by_dia["Cantidad"],
-                name="# Cotizaciones",
-                mode="lines+markers",
-                line=dict(color="#F59E0B", width=2.5),
-                marker=dict(size=6),
-            ), secondary_y=True)
-            fig_evol.update_layout(
-                height=350,
-                margin=dict(l=40, r=40, t=10, b=40),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="Inter, sans-serif", size=11, color="#334155"),
-                legend=dict(orientation="h", y=-0.2, x=0.5, xanchor="center"),
-            )
-            fig_evol.update_yaxes(title_text="Monto ($)", secondary_y=False, gridcolor="#e2e8f0")
-            fig_evol.update_yaxes(title_text="Cantidad", secondary_y=True, gridcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_evol, use_container_width=True)
-
-        # ── Top 10 Clientes por monto cotizado ──
-        st.markdown("<div style='font-size:.95rem;font-weight:600;color:#334155;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px;'>Top 10 Clientes — Monto Cotizado</div>", unsafe_allow_html=True)
-        _top_cli = _dc.groupby("Nombre Cliente")["Total a Facturar"].sum().reset_index().sort_values("Total a Facturar", ascending=True).tail(10)
-        fig_top_cli = go.Figure(go.Bar(
-            y=_top_cli["Nombre Cliente"],
-            x=_top_cli["Total a Facturar"],
-            orientation="h",
-            marker=dict(
-                color=_top_cli["Total a Facturar"],
-                colorscale=[[0, "#bfdbfe"], [1, "#1d4ed8"]],
-                cornerradius=4,
-            ),
-            text=[_fmt_usd(v) for v in _top_cli["Total a Facturar"]],
-            textposition="outside",
-            textfont=dict(size=11),
-        ))
-        fig_top_cli.update_layout(
-            height=380,
-            margin=dict(l=10, r=80, t=10, b=10),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(family="Inter, sans-serif", size=10, color="#334155"),
-            xaxis=dict(gridcolor="#e2e8f0", title=""),
-            yaxis=dict(title=""),
-        )
-        st.plotly_chart(fig_top_cli, use_container_width=True)
-
-        # ── Tabla detallada ──
-        with st.expander("📄 Ver tabla de cotizaciones detallada", expanded=False):
-            _dc_show = _dc[["Cotización", "Nombre Cliente", "Estado", "Total a Facturar",
-                            "Condición Pago", "Fecha Pedido", "Comentarios"]].copy()
-            _dc_show["Total a Facturar"] = _dc_show["Total a Facturar"].apply(lambda v: f"$ {v:,.2f}")
-            _dc_show = _dc_show.sort_values("Fecha Pedido", ascending=False)
-            st.dataframe(_dc_show, use_container_width=True, height=400)
 
     st.stop()
 
@@ -2729,4 +2309,389 @@ if canal_sel == ["RETAIL"]:
                 f"Venta: {fmt_k(_so_worst_cat['V_USD'])}. Evaluar surtido o visibilidad en tienda.",
                 "#EF4444",
             )
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 8. PIPELINE COMERCIAL — SEGUIMIENTO DE PROYECTOS (solo INTEGRADOR)
+# ═══════════════════════════════════════════════════════════════════════
+if canal_sel == ["INTEGRADOR"]:
+    st.markdown("---")
+
+    # ── Helper de formato ──
+    def _pip_fmt(v):
+        if abs(v) >= 1_000_000:
+            return f"${v / 1_000_000:,.2f}M"
+        if abs(v) >= 1_000:
+            return f"${v / 1_000:,.1f}K"
+        return f"${v:,.0f}"
+
+    _dp = df_pipeline.copy()
+    _dp_activo = _dp[_dp["STATUS"] != "PERDIDO"]
+    _dp_ganado = _dp[_dp["STATUS"] == "GANADO"]
+    _dp_negoc = _dp[_dp["STATUS"] == "NEGOCIACIÓN"]
+    _dp_cotiz = _dp[_dp["STATUS"] == "COTIZACIÓN"]
+    _total_pipe = _dp_activo["MONTO"].sum()
+    _total_gan = _dp_ganado["MONTO"].sum()
+    _total_neg = _dp_negoc["MONTO"].sum()
+    _total_cot = _dp_cotiz["MONTO"].sum()
+    _n_proy = len(_dp)
+    _n_activos = len(_dp_activo)
+    _n_gan = len(_dp_ganado)
+    _win_rate = (_n_gan / _n_proy * 100) if _n_proy > 0 else 0
+
+    # ── Header ejecutivo ──
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg,#0a1628 0%,#162a4a 50%,#1a3358 100%);
+                border-radius:16px;padding:32px 40px;margin-bottom:28px;
+                border:1px solid rgba(148,163,184,.12);
+                box-shadow:0 4px 24px rgba(0,0,0,.15);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;">
+            <div>
+                <div style="font-size:10px;font-weight:600;color:#C9A96E;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">
+                    Pipeline Comercial 2026</div>
+                <h2 style="margin:0;color:#f1f5f9;font-weight:700;font-size:1.6rem;letter-spacing:-.02em;">
+                    Seguimiento de Proyectos — Canal Integrador</h2>
+                <p style="margin:6px 0 0;color:#94a3b8;font-size:.82rem;line-height:1.5;">
+                    Reporte ejecutivo de oportunidades activas, estado del embudo comercial y proyección de cierres mensuales.</p>
+            </div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:4px;">
+                <div style="text-align:center;">
+                    <div style="font-size:10px;color:rgba(148,163,184,.6);text-transform:uppercase;letter-spacing:1.5px;">Pipeline Activo</div>
+                    <div style="font-size:1.6rem;font-weight:700;color:#f1f5f9;margin-top:2px;">{_pip_fmt(_total_pipe)}</div>
+                </div>
+                <div style="width:1px;background:rgba(148,163,184,.2);"></div>
+                <div style="text-align:center;">
+                    <div style="font-size:10px;color:rgba(148,163,184,.6);text-transform:uppercase;letter-spacing:1.5px;">Win Rate</div>
+                    <div style="font-size:1.6rem;font-weight:700;color:#C9A96E;margin-top:2px;">{_win_rate:.1f}%</div>
+                </div>
+                <div style="width:1px;background:rgba(148,163,184,.2);"></div>
+                <div style="text-align:center;">
+                    <div style="font-size:10px;color:rgba(148,163,184,.6);text-transform:uppercase;letter-spacing:1.5px;">Proyectos</div>
+                    <div style="font-size:1.6rem;font-weight:700;color:#f1f5f9;margin-top:2px;">{_n_proy}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── KPI cards con estilo corporativo ──
+    _pip_k1, _pip_k2, _pip_k3, _pip_k4 = st.columns(4)
+    _pip_card = (
+        "border-radius:14px;padding:20px 24px;text-align:center;"
+        "box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf1;"
+    )
+
+    with _pip_k1:
+        st.markdown(f"""<div style="{_pip_card} background:linear-gradient(135deg,#f0fdf4,#dcfce7);">
+            <div style="font-size:.68rem;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:1.5px;">Ganados</div>
+            <div style="font-size:1.8rem;font-weight:800;color:#166534;margin:6px 0 2px;">{_pip_fmt(_total_gan)}</div>
+            <div style="font-size:.75rem;color:#16a34a;">{_n_gan} proyectos cerrados</div>
+        </div>""", unsafe_allow_html=True)
+    with _pip_k2:
+        st.markdown(f"""<div style="{_pip_card} background:linear-gradient(135deg,#fffbeb,#fef3c7);">
+            <div style="font-size:.68rem;font-weight:700;color:#a16207;text-transform:uppercase;letter-spacing:1.5px;">En Negociación</div>
+            <div style="font-size:1.8rem;font-weight:800;color:#92400e;margin:6px 0 2px;">{_pip_fmt(_total_neg)}</div>
+            <div style="font-size:.75rem;color:#d97706;">{len(_dp_negoc)} proyectos en curso</div>
+        </div>""", unsafe_allow_html=True)
+    with _pip_k3:
+        st.markdown(f"""<div style="{_pip_card} background:linear-gradient(135deg,#eff6ff,#dbeafe);">
+            <div style="font-size:.68rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:1.5px;">Cotización</div>
+            <div style="font-size:1.8rem;font-weight:800;color:#1e3a8a;margin:6px 0 2px;">{_pip_fmt(_total_cot)}</div>
+            <div style="font-size:.75rem;color:#3b82f6;">{len(_dp_cotiz)} propuestas enviadas</div>
+        </div>""", unsafe_allow_html=True)
+    with _pip_k4:
+        _avg_ticket = _total_pipe / _n_activos if _n_activos > 0 else 0
+        st.markdown(f"""<div style="{_pip_card} background:linear-gradient(135deg,#f8fafc,#f1f5f9);">
+            <div style="font-size:.68rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1.5px;">Ticket Promedio</div>
+            <div style="font-size:1.8rem;font-weight:800;color:#0f172a;margin:6px 0 2px;">{_pip_fmt(_avg_ticket)}</div>
+            <div style="font-size:.75rem;color:#64748b;">por proyecto activo</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════
+    # TABLA RESUMEN: Consolidado por Proyecto
+    # ══════════════════════════════════════════════════════════════════
+    st.markdown("""
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:4px;height:24px;background:#C9A96E;border-radius:2px;"></div>
+        <span style="font-size:1.05rem;font-weight:700;color:#0f172a;letter-spacing:-.01em;">
+            Consolidado de Proyectos — Detalle por Oportunidad</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Build styled HTML table
+    _tbl_rows_html = ""
+    _status_badge = {
+        "GANADO": ("background:#dcfce7;color:#166534;", "Ganado"),
+        "NEGOCIACIÓN": ("background:#fef3c7;color:#92400e;", "Negociación"),
+        "COTIZACIÓN": ("background:#dbeafe;color:#1e3a8a;", "Cotización"),
+        "PERDIDO": ("background:#fee2e2;color:#991b1b;", "Perdido"),
+    }
+    _dp_sorted = _dp.sort_values("MONTO", ascending=False)
+    for _, r in _dp_sorted.iterrows():
+        _st_style, _st_label = _status_badge.get(r["STATUS"], ("background:#f1f5f9;color:#334155;", r["STATUS"]))
+        _monto_display = f"${r['MONTO']:,.0f}" if r["MONTO"] > 0 else "—"
+        _marca = r.get("MARCA", "—") or "—"
+        _proyecto = r.get("PROYECTO", "—") or "—"
+        _cliente = r.get("CLIENTE", "—") or "—"
+        _mes_cierre = r.get("MES ESTIMADO DE CIERRE", "—") or "—"
+        _tbl_rows_html += f"""
+        <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:10px 12px;font-size:.78rem;color:#0f172a;font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{_cliente}">{_cliente}</td>
+            <td style="padding:10px 12px;font-size:.78rem;color:#334155;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{_proyecto}">{_proyecto}</td>
+            <td style="padding:10px 8px;text-align:center;">
+                <span style="{_st_style}padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:600;letter-spacing:.5px;">{_st_label}</span>
+            </td>
+            <td style="padding:10px 12px;font-size:.82rem;font-weight:700;color:#0f172a;text-align:right;font-variant-numeric:tabular-nums;">{_monto_display}</td>
+            <td style="padding:10px 12px;font-size:.78rem;color:#475569;text-align:center;">{_marca}</td>
+            <td style="padding:10px 12px;font-size:.78rem;color:#475569;text-align:center;">{_mes_cierre}</td>
+        </tr>"""
+
+    st.markdown(f"""
+    <div style="background:#fff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.04);">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:linear-gradient(135deg,#0f172a,#1e293b);">
+                    <th style="padding:12px 12px;text-align:left;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Cliente</th>
+                    <th style="padding:12px 12px;text-align:left;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Proyecto</th>
+                    <th style="padding:12px 8px;text-align:center;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Status</th>
+                    <th style="padding:12px 12px;text-align:right;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Monto (USD)</th>
+                    <th style="padding:12px 12px;text-align:center;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Marca</th>
+                    <th style="padding:12px 12px;text-align:center;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Mes Est. Cierre</th>
+                </tr>
+            </thead>
+            <tbody>{_tbl_rows_html}</tbody>
+            <tfoot>
+                <tr style="background:#f8fafc;border-top:2px solid #e2e8f0;">
+                    <td colspan="3" style="padding:12px;font-size:.78rem;font-weight:700;color:#0f172a;">TOTAL PIPELINE ACTIVO</td>
+                    <td style="padding:12px;font-size:.9rem;font-weight:800;color:#0f172a;text-align:right;">{_pip_fmt(_total_pipe)}</td>
+                    <td colspan="2" style="padding:12px;font-size:.75rem;color:#64748b;text-align:center;">{_n_activos} proyectos</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════
+    # GRÁFICOS EJECUTIVOS
+    # ══════════════════════════════════════════════════════════════════
+
+    # ── Row 1: Embudo por Status + Composición por Marca ──
+    st.markdown("""
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:4px;height:24px;background:#C9A96E;border-radius:2px;"></div>
+        <span style="font-size:1.05rem;font-weight:700;color:#0f172a;">Análisis del Embudo Comercial y Composición por Marca</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _gcol1, _gcol2 = st.columns(2)
+
+    _EXEC_LAYOUT = dict(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, sans-serif", size=12, color="#334155"),
+        margin=dict(l=20, r=20, t=40, b=20),
+    )
+
+    with _gcol1:
+        _by_status = _dp.groupby("STATUS").agg(MONTO=("MONTO", "sum"), N=("MONTO", "count")).reset_index()
+        _st_order = {"GANADO": 0, "NEGOCIACIÓN": 1, "COTIZACIÓN": 2, "PERDIDO": 3}
+        _by_status["_o"] = _by_status["STATUS"].map(_st_order).fillna(9)
+        _by_status = _by_status.sort_values("_o")
+        _st_colors = {"GANADO": "#166534", "NEGOCIACIÓN": "#D97706", "COTIZACIÓN": "#2563EB", "PERDIDO": "#DC2626"}
+
+        fig_funnel = go.Figure(go.Funnel(
+            y=_by_status["STATUS"],
+            x=_by_status["MONTO"],
+            textinfo="value+percent initial",
+            texttemplate="$%{value:,.0f}  (%{percentInitial:.1%})",
+            textfont=dict(size=12, color="#fff"),
+            marker=dict(color=[_st_colors.get(s, "#94a3b8") for s in _by_status["STATUS"]]),
+            connector=dict(line=dict(color="#e2e8f0", width=1)),
+        ))
+        fig_funnel.update_layout(
+            **_EXEC_LAYOUT,
+            title=dict(text="Embudo de Pipeline por Status", font=dict(size=13, color="#334155"), x=0.01),
+            height=380,
+        )
+        st.plotly_chart(fig_funnel, use_container_width=True)
+
+    with _gcol2:
+        _by_marca = _dp_activo.groupby("MARCA").agg(MONTO=("MONTO", "sum"), N=("MONTO", "count")).reset_index()
+        _by_marca = _by_marca.sort_values("MONTO", ascending=False)
+        _marca_pal = ["#1e3a8a", "#1d4ed8", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe", "#eff6ff", "#f8fafc"]
+
+        fig_marca = go.Figure(go.Pie(
+            labels=_by_marca["MARCA"],
+            values=_by_marca["MONTO"],
+            hole=0.52,
+            marker=dict(colors=_marca_pal[:len(_by_marca)], line=dict(color="#fff", width=2)),
+            textinfo="label+percent",
+            textfont=dict(size=11),
+            hovertemplate="<b>%{label}</b><br>Monto: $%{value:,.0f}<br>%{percent}<br>%{customdata[0]} proyectos<extra></extra>",
+            customdata=_by_marca[["N"]].values,
+        ))
+        fig_marca.update_layout(
+            **_EXEC_LAYOUT,
+            title=dict(text="Composición del Pipeline por Marca", font=dict(size=13, color="#334155"), x=0.01),
+            height=380,
+            showlegend=True,
+            legend=dict(orientation="v", y=0.5, x=1.02, font=dict(size=10)),
+        )
+        st.plotly_chart(fig_marca, use_container_width=True)
+
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    # ── Row 2: Proyección de Cierres Mensuales ──
+    st.markdown("""
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:4px;height:24px;background:#C9A96E;border-radius:2px;"></div>
+        <span style="font-size:1.05rem;font-weight:700;color:#0f172a;">Proyección de Cierres por Mes Estimado</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _mes_col = "MES ESTIMADO DE CIERRE"
+    _dp_notnull = _dp_activo.dropna(subset=[_mes_col])
+    _by_mes_st = _dp_notnull.groupby([_mes_col, "STATUS"])["MONTO"].sum().reset_index()
+    _by_mes_st["_o"] = _by_mes_st[_mes_col].map(MESES_ORDEN).fillna(99)
+    _by_mes_st = _by_mes_st.sort_values("_o")
+    _meses_uniq = _by_mes_st.drop_duplicates(_mes_col).sort_values("_o")[_mes_col].tolist()
+
+    _by_mes_total = _dp_notnull.groupby(_mes_col)["MONTO"].sum().reset_index()
+    _by_mes_total["_o"] = _by_mes_total[_mes_col].map(MESES_ORDEN).fillna(99)
+    _by_mes_total = _by_mes_total.sort_values("_o")
+
+    fig_mes = go.Figure()
+    for s, clr in [("GANADO", "#166534"), ("NEGOCIACIÓN", "#D97706"), ("COTIZACIÓN", "#2563EB")]:
+        _sd = _by_mes_st[_by_mes_st["STATUS"] == s]
+        fig_mes.add_trace(go.Bar(
+            x=_sd[_mes_col], y=_sd["MONTO"],
+            name=s.title(),
+            marker=dict(color=clr, cornerradius=4),
+            hovertemplate=f"<b>{s.title()}</b><br>%{{x}}: $%{{y:,.0f}}<extra></extra>",
+        ))
+    # Total line
+    fig_mes.add_trace(go.Scatter(
+        x=_by_mes_total[_mes_col], y=_by_mes_total["MONTO"],
+        mode="lines+markers+text",
+        name="Total",
+        line=dict(color="#C9A96E", width=3, dash="dot"),
+        marker=dict(size=8, color="#C9A96E", line=dict(color="#fff", width=2)),
+        text=[_pip_fmt(v) for v in _by_mes_total["MONTO"]],
+        textposition="top center",
+        textfont=dict(size=11, color="#92400e", family="Inter, sans-serif"),
+    ))
+    fig_mes.update_layout(
+        **_EXEC_LAYOUT,
+        barmode="stack",
+        height=420,
+        margin=dict(l=40, r=20, t=20, b=60),
+        xaxis=dict(type="category", categoryorder="array", categoryarray=_meses_uniq, title=""),
+        yaxis=dict(gridcolor="#f1f5f9", title="Monto (USD)", title_font=dict(size=11, color="#94a3b8")),
+        legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center", font=dict(size=11)),
+    )
+    st.plotly_chart(fig_mes, use_container_width=True)
+
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════
+    # TABLA RESUMEN: Por Mes Estimado de Cierre
+    # ══════════════════════════════════════════════════════════════════
+    st.markdown("""
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:4px;height:24px;background:#C9A96E;border-radius:2px;"></div>
+        <span style="font-size:1.05rem;font-weight:700;color:#0f172a;">Resumen Ejecutivo por Mes Estimado de Cierre</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _pivot = _dp_activo.dropna(subset=[_mes_col]).groupby([_mes_col, "STATUS"])["MONTO"].sum().unstack(fill_value=0)
+    _pivot["_o"] = _pivot.index.map(MESES_ORDEN).fillna(99)
+    _pivot = _pivot.sort_values("_o").drop(columns=["_o"])
+    _pivot["TOTAL"] = _pivot.sum(axis=1)
+    _n_pivot = _dp_activo.dropna(subset=[_mes_col]).groupby([_mes_col, "STATUS"])["MONTO"].count().unstack(fill_value=0)
+    _n_pivot["_o"] = _n_pivot.index.map(MESES_ORDEN).fillna(99)
+    _n_pivot = _n_pivot.sort_values("_o").drop(columns=["_o"])
+    _n_pivot["TOTAL"] = _n_pivot.sum(axis=1)
+
+    _status_cols = [s for s in ["GANADO", "NEGOCIACIÓN", "COTIZACIÓN"] if s in _pivot.columns]
+    _col_hdr_styles = {
+        "GANADO": "background:#166534;color:#fff;",
+        "NEGOCIACIÓN": "background:#92400e;color:#fff;",
+        "COTIZACIÓN": "background:#1e3a8a;color:#fff;",
+    }
+    _col_cell_bg = {
+        "GANADO": "#f0fdf4",
+        "NEGOCIACIÓN": "#fffbeb",
+        "COTIZACIÓN": "#eff6ff",
+    }
+
+    _hdr_cells = "".join(
+        f'<th style="padding:12px 14px;text-align:right;font-size:.7rem;font-weight:600;{_col_hdr_styles[s]}text-transform:uppercase;letter-spacing:1px;">{s.title()}</th>'
+        for s in _status_cols
+    )
+    _tbl2_rows = ""
+    _grand_totals = {s: _pivot[s].sum() if s in _pivot.columns else 0 for s in _status_cols}
+    _grand_totals["TOTAL"] = _pivot["TOTAL"].sum()
+
+    for mes in _pivot.index:
+        _tbl2_rows += '<tr style="border-bottom:1px solid #f1f5f9;">'
+        _tbl2_rows += f'<td style="padding:11px 14px;font-size:.82rem;font-weight:600;color:#0f172a;">{mes}</td>'
+        for s in _status_cols:
+            v = _pivot.loc[mes, s] if s in _pivot.columns else 0
+            n = _n_pivot.loc[mes, s] if s in _n_pivot.columns else 0
+            _bg = _col_cell_bg.get(s, "#fff")
+            if v > 0:
+                _tbl2_rows += f'<td style="padding:11px 14px;text-align:right;background:{_bg};font-size:.82rem;font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums;">${v:,.0f} <span style="font-size:.68rem;color:#64748b;font-weight:400;">({int(n)})</span></td>'
+            else:
+                _tbl2_rows += f'<td style="padding:11px 14px;text-align:right;color:#cbd5e1;font-size:.82rem;">—</td>'
+        _tbl2_rows += f'<td style="padding:11px 14px;text-align:right;font-size:.85rem;font-weight:800;color:#0f172a;background:#f8fafc;font-variant-numeric:tabular-nums;">${_pivot.loc[mes, "TOTAL"]:,.0f}</td>'
+        _tbl2_rows += '</tr>'
+
+    st.markdown(f"""
+    <div style="background:#fff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.04);">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:linear-gradient(135deg,#0f172a,#1e293b);">
+                    <th style="padding:12px 14px;text-align:left;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;">Mes de Cierre</th>
+                    {_hdr_cells}
+                    <th style="padding:12px 14px;text-align:right;font-size:.7rem;font-weight:600;color:#C9A96E;text-transform:uppercase;letter-spacing:1px;background:rgba(201,169,110,.1);">Total</th>
+                </tr>
+            </thead>
+            <tbody>{_tbl2_rows}</tbody>
+            <tfoot>
+                <tr style="background:linear-gradient(135deg,#0f172a,#1e293b);border-top:2px solid #C9A96E;">
+                    <td style="padding:13px 14px;font-size:.82rem;font-weight:700;color:#C9A96E;">TOTAL GENERAL</td>
+                    {"".join(f'<td style="padding:13px 14px;text-align:right;font-size:.85rem;font-weight:700;color:#f1f5f9;">${_grand_totals[s]:,.0f}</td>' for s in _status_cols)}
+                    <td style="padding:13px 14px;text-align:right;font-size:.95rem;font-weight:800;color:#C9A96E;">${_grand_totals["TOTAL"]:,.0f}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    # ── Nota ejecutiva ──
+    _top_marca = _dp_activo.groupby("MARCA")["MONTO"].sum().idxmax() if len(_dp_activo) > 0 else "N/A"
+    _top_marca_val = _dp_activo.groupby("MARCA")["MONTO"].sum().max() if len(_dp_activo) > 0 else 0
+    _top_mes = _by_mes_total.loc[_by_mes_total["MONTO"].idxmax(), _mes_col] if len(_by_mes_total) > 0 else "N/A"
+    _top_mes_val = _by_mes_total["MONTO"].max() if len(_by_mes_total) > 0 else 0
+
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg,#fefce8,#fef9c3);border:1px solid #fde68a;border-left:4px solid #C9A96E;
+                border-radius:0 12px 12px 0;padding:20px 24px;margin-top:8px;">
+        <div style="font-size:.72rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">
+            Resumen Ejecutivo</div>
+        <div style="font-size:.85rem;color:#1c1917;line-height:1.65;">
+            El pipeline activo del canal <b>Integrador</b> asciende a <b>{_pip_fmt(_total_pipe)}</b> distribuido en
+            <b>{_n_activos} proyectos</b>. La marca con mayor participación es <b>{_top_marca}</b> ({_pip_fmt(_top_marca_val)}),
+            y el mes con mayor proyección de cierre es <b>{_top_mes}</b> ({_pip_fmt(_top_mes_val)}).
+            Se registra un win rate del <b>{_win_rate:.1f}%</b> con <b>{_n_gan} proyectos cerrados</b>
+            por un total de <b>{_pip_fmt(_total_gan)}</b>.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
