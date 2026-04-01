@@ -1489,6 +1489,53 @@ fig_ticket.update_yaxes(showticklabels=False, showgrid=False, title="")
 fig_ticket.update_xaxes(showgrid=False)
 st.plotly_chart(fig_ticket, use_container_width=True)
 
+# ═══════════════════════════════════════════════════════════════════════
+# 2b. EVOLUTIVO TICKET PROMEDIO POR CLIENTE
+# ═══════════════════════════════════════════════════════════════════════
+st.subheader(f"Evolutivo Mensual{' Sell In' if canal_sel == ['RETAIL'] else ''} — Ticket Promedio por Cliente")
+
+evo_ticket_cli = (
+    dff.groupby(["ANIO", "MES_NUM", "CLIENTE"])
+    .agg(VENTA=("VENTA USD", "sum"))
+    .reset_index()
+)
+evo_ticket_cli = evo_ticket_cli[evo_ticket_cli["VENTA"] > 0]
+evo_ticket_cli_mes = (
+    evo_ticket_cli.groupby(["ANIO", "MES_NUM"])
+    .agg(TICKET=("VENTA", "mean"))
+    .reset_index()
+    .sort_values(["ANIO", "MES_NUM"])
+)
+evo_ticket_cli_mes["MES_LABEL"] = evo_ticket_cli_mes.apply(
+    lambda r: f"{MESES_ESP[int(r['MES_NUM'])]} {int(r['ANIO'])}", axis=1
+)
+
+fig_ticket_cli = go.Figure()
+fig_ticket_cli.add_trace(
+    go.Scatter(
+        x=evo_ticket_cli_mes["MES_LABEL"],
+        y=evo_ticket_cli_mes["TICKET"],
+        mode="lines+markers+text",
+        line=dict(color="#0891B2", width=3, shape="spline", smoothing=0.8),
+        marker=dict(size=8, color="#0891B2"),
+        text=evo_ticket_cli_mes["TICKET"].apply(lambda v: f"${v:,.0f}"),
+        textposition="top center",
+        textfont=dict(size=16, color="#065F73"),
+        cliponaxis=False,
+        name="Ticket Promedio por Cliente",
+    )
+)
+
+fig_ticket_cli.update_layout(
+    height=400,
+    margin=dict(t=50, b=40),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    plot_bgcolor="white",
+)
+fig_ticket_cli.update_yaxes(showticklabels=False, showgrid=False, title="")
+fig_ticket_cli.update_xaxes(showgrid=False)
+st.plotly_chart(fig_ticket_cli, use_container_width=True)
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # 3. TOP 10 Y BOTTOM 10 CLIENTES POR AÑO
