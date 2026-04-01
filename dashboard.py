@@ -1500,34 +1500,33 @@ evo_ticket_vend = (
     .reset_index()
 )
 evo_ticket_vend = evo_ticket_vend[evo_ticket_vend["VENTA"] > 0]
-evo_ticket_vend_mes = (
-    evo_ticket_vend.groupby(["ANIO", "MES_NUM"])
-    .agg(TICKET=("VENTA", "mean"))
-    .reset_index()
-    .sort_values(["ANIO", "MES_NUM"])
-)
-evo_ticket_vend_mes["MES_LABEL"] = evo_ticket_vend_mes.apply(
+evo_ticket_vend["MES_LABEL"] = evo_ticket_vend.apply(
     lambda r: f"{MESES_ESP[int(r['MES_NUM'])]} {int(r['ANIO'])}", axis=1
 )
+evo_ticket_vend = evo_ticket_vend.sort_values(["ANIO", "MES_NUM"])
 
+_vend_colors = ["#0891B2", "#8B5CF6", "#E11D48", "#F59E0B", "#10B981", "#6366F1", "#EC4899", "#14B8A6"]
 fig_ticket_vend = go.Figure()
-fig_ticket_vend.add_trace(
-    go.Scatter(
-        x=evo_ticket_vend_mes["MES_LABEL"],
-        y=evo_ticket_vend_mes["TICKET"],
-        mode="lines+markers+text",
-        line=dict(color="#0891B2", width=3, shape="spline", smoothing=0.8),
-        marker=dict(size=8, color="#0891B2"),
-        text=evo_ticket_vend_mes["TICKET"].apply(lambda v: f"${v:,.0f}"),
-        textposition="top center",
-        textfont=dict(size=16, color="#065F73"),
-        cliponaxis=False,
-        name="Ticket Promedio por Vendedor",
+for i, vendedor in enumerate(evo_ticket_vend["VENDEDOR_NUEVO"].unique()):
+    _vdf = evo_ticket_vend[evo_ticket_vend["VENDEDOR_NUEVO"] == vendedor]
+    _color = _vend_colors[i % len(_vend_colors)]
+    fig_ticket_vend.add_trace(
+        go.Scatter(
+            x=_vdf["MES_LABEL"],
+            y=_vdf["VENTA"],
+            mode="lines+markers+text",
+            line=dict(color=_color, width=3, shape="spline", smoothing=0.8),
+            marker=dict(size=8, color=_color),
+            text=_vdf["VENTA"].apply(lambda v: f"${v:,.0f}"),
+            textposition="top center",
+            textfont=dict(size=11, color=_color),
+            cliponaxis=False,
+            name=vendedor,
+        )
     )
-)
 
 fig_ticket_vend.update_layout(
-    height=400,
+    height=500,
     margin=dict(t=50, b=40),
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     plot_bgcolor="white",
