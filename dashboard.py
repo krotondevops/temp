@@ -1636,17 +1636,25 @@ col_cat_pie, col_lin_bar = st.columns(2)
 # Donut por Categoría Línea
 with col_cat_pie:
     part_cat = (
-        dff.groupby("CATEGORIA_LINEA")["VENTA USD"].sum()
+        dff.groupby("CATEGORIA_LINEA").agg(
+            VENTA=("VENTA USD", "sum"),
+            MARGEN=("MARGEN USD", "sum"),
+        )
         .reset_index()
-        .sort_values("VENTA USD", ascending=False)
+        .sort_values("VENTA", ascending=False)
     )
-    _cat_total = part_cat["VENTA USD"].sum()
-    _cat_pcts = (part_cat["VENTA USD"] / _cat_total * 100) if _cat_total > 0 else part_cat["VENTA USD"] * 0
+    part_cat["MARGEN_PCT"] = (part_cat["MARGEN"] / part_cat["VENTA"] * 100).fillna(0)
+    _cat_total = part_cat["VENTA"].sum()
+    _cat_pcts = (part_cat["VENTA"] / _cat_total * 100) if _cat_total > 0 else part_cat["VENTA"] * 0
     _cat_pull = [0.06 if p < 5 else 0 for p in _cat_pcts]
+    _cat_hover = [
+        f"<b>{r['CATEGORIA_LINEA']}</b><br>Venta: ${r['VENTA']:,.0f}<br>Margen: ${r['MARGEN']:,.0f} ({r['MARGEN_PCT']:.1f}%)"
+        for _, r in part_cat.iterrows()
+    ]
     fig_part_cat = go.Figure(
         go.Pie(
             labels=part_cat["CATEGORIA_LINEA"],
-            values=part_cat["VENTA USD"],
+            values=part_cat["VENTA"],
             hole=0.45,
             textinfo="label+percent",
             textposition="outside",
@@ -1654,7 +1662,8 @@ with col_cat_pie:
             pull=_cat_pull,
             marker=dict(colors=["#2563EB", "#10B981", "#F59E0B", "#EF4444",
                                 "#8B5CF6", "#EC4899", "#06B6D4", "#6B7280"]),
-            hovertemplate="<b>%{label}</b><br>Venta: $%{value:,.0f}<br>%{percent}<extra></extra>",
+            hovertemplate="%{customdata}<extra></extra>",
+            customdata=_cat_hover,
         )
     )
     fig_part_cat.update_layout(
@@ -1669,14 +1678,22 @@ with col_cat_pie:
 # Barras horizontales por Línea (Top 15)
 with col_lin_bar:
     part_lin = (
-        dff.groupby("LINEA")["VENTA USD"].sum()
+        dff.groupby("LINEA").agg(
+            VENTA=("VENTA USD", "sum"),
+            MARGEN=("MARGEN USD", "sum"),
+        )
         .reset_index()
-        .sort_values("VENTA USD", ascending=False)
+        .sort_values("VENTA", ascending=False)
         .head(10)
-        .sort_values("VENTA USD", ascending=True)
+        .sort_values("VENTA", ascending=True)
     )
     total_vta_lin = dff["VENTA USD"].sum()
-    part_lin["% Partic."] = part_lin["VENTA USD"] / total_vta_lin if total_vta_lin != 0 else 0
+    part_lin["% Partic."] = part_lin["VENTA"] / total_vta_lin if total_vta_lin != 0 else 0
+    part_lin["MARGEN_PCT"] = (part_lin["MARGEN"] / part_lin["VENTA"] * 100).fillna(0)
+    _lin_hover = [
+        f"<b>{r['LINEA']}</b><br>Venta: ${r['VENTA']:,.0f}<br>Margen: ${r['MARGEN']:,.0f} ({r['MARGEN_PCT']:.1f}%)<br>Partic: {r['% Partic.']:.1%}"
+        for _, r in part_lin.iterrows()
+    ]
 
     fig_part_lin = go.Figure(
         go.Bar(
@@ -1688,6 +1705,8 @@ with col_lin_bar:
             textposition="inside",
             textfont=dict(size=13, color="white"),
             insidetextanchor="end",
+            hovertemplate="%{customdata}<extra></extra>",
+            customdata=_lin_hover,
         )
     )
     fig_part_lin.update_layout(
