@@ -1522,7 +1522,10 @@ if canal_sel == ["INTEGRADOR"]:
         _clientes = grp.sort_values("VENTA", ascending=False)
         _lines = [f"<b>{vend}</b> — {MESES_ESP[int(mes)]} {int(anio)}",
                   f"<b>Total: ${grp['VENTA'].sum():,.0f}</b>", ""]
-        for _, cr in _clientes.iterrows():
+        for _idx, (_, cr) in enumerate(_clientes.iterrows()):
+            if _idx >= 5:
+                _lines.append(f"... y {len(_clientes) - 5} más")
+                break
             _lines.append(f"• {cr['CLIENTE']}: ${cr['VENTA']:,.0f}")
         _hover_map[(anio, mes, vend)] = "<br>".join(_lines)
 
