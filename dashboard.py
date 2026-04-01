@@ -1501,11 +1501,20 @@ def ranking_clientes(data, year):
     n_meses = data_year["MES_NUM"].nunique()
     n_meses = n_meses if n_meses > 0 else 1
     total_vta = data_year["VENTA USD"].sum()
+    # Obtener vendedor principal por cliente (el de mayor venta)
+    _vend_map = (
+        data_year.groupby(["CLIENTE", "VENDEDOR_NUEVO"])["VENTA USD"].sum()
+        .reset_index()
+        .sort_values("VENTA USD", ascending=False)
+        .drop_duplicates("CLIENTE")
+        .set_index("CLIENTE")["VENDEDOR_NUEVO"]
+    )
     agg = (
         data_year.groupby("CLIENTE")
         .agg(VENTA=("VENTA USD", "sum"), MARGEN=("MARGEN USD", "sum"))
         .reset_index()
     )
+    agg["VENDEDOR"] = agg["CLIENTE"].map(_vend_map).fillna("")
     agg["Vta Prom Mes"] = agg["VENTA"] / n_meses
     agg["% Participación"] = agg["VENTA"] / total_vta if total_vta != 0 else 0
     agg["% Margen"] = agg.apply(lambda r: calc_margen_pct(r["VENTA"], r["MARGEN"]), axis=1)
@@ -1522,8 +1531,8 @@ for year in sorted(dff["ANIO"].unique()):
 
     tab_top, tab_bot = st.tabs(["Top 10", "Bottom 10"])
     with tab_top:
-        t10 = top10[["CLIENTE", "Vta Prom Mes", "% Participación", "% Margen"]].copy()
-        t10.columns = ["Cliente", "Vta Prom Mes", "% Partic.", "% Margen"]
+        t10 = top10[["CLIENTE", "VENDEDOR", "Vta Prom Mes", "% Participación", "% Margen"]].copy()
+        t10.columns = ["Cliente", "Vendedor", "Vta Prom Mes", "% Partic.", "% Margen"]
         st.dataframe(
             t10.style.format({"Vta Prom Mes": "${:,.0f}", "% Partic.": "{:.2%}", "% Margen": "{:.2%}"})
             .bar(subset=["% Partic."], color="#bbf7d0", vmin=0),
@@ -1531,8 +1540,8 @@ for year in sorted(dff["ANIO"].unique()):
             height=420,
         )
     with tab_bot:
-        b10 = bottom10[["CLIENTE", "Vta Prom Mes", "% Participación", "% Margen"]].copy()
-        b10.columns = ["Cliente", "Vta Prom Mes", "% Partic.", "% Margen"]
+        b10 = bottom10[["CLIENTE", "VENDEDOR", "Vta Prom Mes", "% Participación", "% Margen"]].copy()
+        b10.columns = ["Cliente", "Vendedor", "Vta Prom Mes", "% Partic.", "% Margen"]
         st.dataframe(
             b10.style.format({"Vta Prom Mes": "${:,.0f}", "% Partic.": "{:.2%}", "% Margen": "{:.2%}"})
             .bar(subset=["% Partic."], color="#fecaca", vmin=0),
