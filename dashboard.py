@@ -1505,12 +1505,13 @@ if canal_sel == ["INTEGRADOR"]:
     )
     evo_ticket_det = evo_ticket_det[evo_ticket_det["VENTA"] > 0]
 
-    # Totales por vendedor/mes
+    # Ticket promedio por cliente único por vendedor/mes
     evo_ticket_vend = (
         evo_ticket_det.groupby(["ANIO", "MES_NUM", "VENDEDOR_NUEVO"])
-        .agg(VENTA=("VENTA", "sum"))
+        .agg(VENTA_TOTAL=("VENTA", "sum"), N_CLIENTES=("CLIENTE", "nunique"))
         .reset_index()
     )
+    evo_ticket_vend["TICKET"] = evo_ticket_vend["VENTA_TOTAL"] / evo_ticket_vend["N_CLIENTES"]
     evo_ticket_vend["MES_LABEL"] = evo_ticket_vend.apply(
         lambda r: f"{MESES_ESP[int(r['MES_NUM'])]} {int(r['ANIO'])}", axis=1
     )
@@ -1520,8 +1521,12 @@ if canal_sel == ["INTEGRADOR"]:
     _hover_map = {}
     for (anio, mes, vend), grp in evo_ticket_det.groupby(["ANIO", "MES_NUM", "VENDEDOR_NUEVO"]):
         _clientes = grp.sort_values("VENTA", ascending=False)
+        _n_cli = len(_clientes)
+        _total = grp["VENTA"].sum()
+        _ticket = _total / _n_cli if _n_cli > 0 else 0
         _lines = [f"<b>{vend}</b> — {MESES_ESP[int(mes)]} {int(anio)}",
-                  f"<b>Total: ${grp['VENTA'].sum():,.0f}</b>", ""]
+                  f"<b>Ticket Prom: ${_ticket:,.0f}</b> ({_n_cli} clientes)",
+                  f"Venta Total: ${_total:,.0f}", ""]
         for _idx, (_, cr) in enumerate(_clientes.iterrows()):
             if _idx >= 5:
                 _lines.append(f"... y {len(_clientes) - 5} más")
@@ -1540,11 +1545,11 @@ if canal_sel == ["INTEGRADOR"]:
         fig_ticket_vend.add_trace(
             go.Scatter(
                 x=_vdf["MES_LABEL"],
-                y=_vdf["VENTA"],
+                y=_vdf["TICKET"],
                 mode="lines+markers+text",
                 line=dict(color=_color, width=3, shape="spline", smoothing=0.8),
                 marker=dict(size=8, color=_color),
-                text=_vdf["VENTA"].apply(lambda v: f"${v:,.0f}"),
+                text=_vdf["TICKET"].apply(lambda v: f"${v:,.0f}"),
                 textposition="top center",
                 textfont=dict(size=11, color=_color),
                 cliponaxis=False,
